@@ -1,37 +1,42 @@
 site_name: antcrew docs
 site_url: https://docs.antcrew.org
-site_description: Documentation for the antcrew AI agent orchestration platform
+site_description: Documentation for antcrew — the AI agent orchestration platform for teams
 docs_dir: docs
 
 theme:
   name: material
   palette:
     - scheme: default
-      primary: indigo
-      accent: indigo
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-7
-        name: Dark mode
+        name: Switch to dark mode
     - scheme: slate
-      primary: indigo
-      accent: indigo
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-4
-        name: Light mode
+        name: Switch to light mode
   features:
     - navigation.tabs
+    - navigation.indexes
     - navigation.sections
-    - navigation.expand
     - navigation.top
+    - navigation.footer
     - search.suggest
     - search.highlight
     - content.code.copy
     - content.code.annotate
+    - toc.follow
   icon:
     repo: fontawesome/brands/github
 
-repo_url: https://github.com/iagop03
-repo_name: antcrew
+extra_css:
+  - stylesheets/extra.css
+
+repo_url: https://github.com/iagop03/antcrew-platform
+repo_name: antcrew-platform
 
 plugins:
   - search
@@ -50,31 +55,36 @@ markdown_extensions:
       alternate_style: true
   - pymdownx.tasklist:
       custom_checkbox: true
+  - pymdownx.inlinehilite
   - tables
   - attr_list
+  - md_in_html
+  - toc:
+      permalink: true
 
 nav:
   - Home: index.md
+  - How it works:
+    - "Components & architecture": architecture/overview.md
+    - "A full team in action": guides/fullstack-team.md
+    - "Run lifecycle & events": architecture/data-flow.md
+    - Security: architecture/security.md
+  - Engine SDK:
+    - Overview: engine/index.md
+    - "Typed contracts": engine/contracts.md
+    - "LLM providers": engine/providers.md
+    - "TraceLog & Replay": engine/tracelog.md
+    - "Custom agents": engine/custom-agents.md
   - Platform:
     - Overview: platform/index.md
-    - Getting Started: platform/getting-started.md
-    - Workspaces & API Keys: platform/workspaces.md
-    - Runs & Tickets: platform/runs.md
-    - HITL Reviews: platform/hitl.md
+    - "Quick start": platform/getting-started.md
+    - "Workspaces & API keys": platform/workspaces.md
+    - "Runs & tickets": platform/runs.md
+    - "HITL reviews": platform/hitl.md
     - Webhooks: platform/webhooks.md
     - Evals: platform/evals.md
-    - Deployment: platform/deployment.md
-  - Engine:
-    - Overview: engine/index.md
-    - Providers: engine/providers.md
-    - Typed Contracts: engine/contracts.md
-    - TraceLog & Replay: engine/tracelog.md
-    - Custom Agents: engine/custom-agents.md
   - Proxy:
     - Overview: proxy/index.md
     - Configuration: proxy/configuration.md
-    - Provider Routing: proxy/routing.md
-  - Architecture:
-    - System Overview: architecture/overview.md
-    - Data Flow: architecture/data-flow.md
-    - Security: architecture/security.md
+    - "Provider routing": proxy/routing.md
+  - Self-hosting: platform/deployment.md
