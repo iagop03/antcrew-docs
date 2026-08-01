@@ -1,0 +1,80 @@
+site_name: antcrew docs
+site_url: https://docs.antcrew.org
+site_description: Documentation for the antcrew AI agent orchestration platform
+docs_dir: docs
+
+theme:
+  name: material
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Light mode
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - navigation.top
+    - search.suggest
+    - search.highlight
+    - content.code.copy
+    - content.code.annotate
+  icon:
+    repo: fontawesome/brands/github
+
+repo_url: https://github.com/iagop03
+repo_name: antcrew
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - tables
+  - attr_list
+
+nav:
+  - Home: index.md
+  - Platform:
+    - Overview: platform/index.md
+    - Getting Started: platform/getting-started.md
+    - Workspaces & API Keys: platform/workspaces.md
+    - Runs & Tickets: platform/runs.md
+    - HITL Reviews: platform/hitl.md
+    - Webhooks: platform/webhooks.md
+    - Evals: platform/evals.md
+    - Deployment: platform/deployment.md
+  - Engine:
+    - Overview: engine/index.md
+    - Providers: engine/providers.md
+    - Typed Contracts: engine/contracts.md
+    - TraceLog & Replay: engine/tracelog.md
+    - Custom Agents: engine/custom-agents.md
+  - Proxy:
+    - Overview: proxy/index.md
+    - Configuration: proxy/configuration.md
+    - Provider Routing: proxy/routing.md
+  - Architecture:
+    - System Overview: architecture/overview.md
+    - Data Flow: architecture/data-flow.md
+    - Security: architecture/security.md
