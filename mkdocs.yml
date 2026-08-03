@@ -79,6 +79,7 @@ nav:
     - Overview: platform/index.md
     - "Quick start": platform/getting-started.md
     - "Workspaces & API keys": platform/workspaces.md
+    - "CLI & API integration": platform/cli-integration.md
     - "Runs & tickets": platform/runs.md
     - "HITL reviews": platform/hitl.md
     - Webhooks: platform/webhooks.md
