@@ -1,15 +1,15 @@
 /* ── antcrew brand override for MkDocs Material ─────────────────────────── */
 
-/* Primary: dark indigo used for header, nav active states */
+/* Primary: indigo-800 header — matches antcrew brand identity */
 [data-md-color-primary="custom"] {
-  --md-primary-fg-color:             #e0e7ff;
-  --md-primary-fg-color--light:      rgba(224, 231, 255, 0.7);
-  --md-primary-fg-color--dark:       rgba(224, 231, 255, 0.54);
-  --md-primary-bg-color:             #1e1b4b;
-  --md-primary-bg-color--light:      rgba(30, 27, 75, 0.54);
+  --md-primary-fg-color:             #ffffff;
+  --md-primary-fg-color--light:      rgba(255, 255, 255, 0.7);
+  --md-primary-fg-color--dark:       rgba(255, 255, 255, 0.54);
+  --md-primary-bg-color:             #3730a3;
+  --md-primary-bg-color--light:      rgba(55, 48, 163, 0.54);
 }
 
-/* Accent: lavender indigo for links, hover, highlights */
+/* Accent: indigo-400 (#818cf8) — the antcrew brand accent */
 [data-md-color-accent="custom"] {
   --md-accent-fg-color:              #818cf8;
   --md-accent-fg-color--transparent: rgba(129, 140, 248, 0.1);
@@ -44,7 +44,7 @@
   color: #c7d2fe;
 }
 
-/* Sidebar active item underline: accent colour */
+/* Sidebar active item: accent colour */
 .md-nav__item .md-nav__link--active {
   color: #818cf8;
 }

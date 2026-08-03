@@ -35,9 +35,6 @@ theme:
 extra_css:
   - stylesheets/extra.css
 
-repo_url: https://github.com/iagop03/antcrew-platform
-repo_name: antcrew-platform
-
 plugins:
   - search
 
@@ -56,6 +53,9 @@ markdown_extensions:
   - pymdownx.tasklist:
       custom_checkbox: true
   - pymdownx.inlinehilite
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
   - tables
   - attr_list
   - md_in_html
@@ -88,4 +88,3 @@ nav:
     - Overview: proxy/index.md
     - Configuration: proxy/configuration.md
     - "Provider routing": proxy/routing.md
-  - Self-hosting: platform/deployment.md

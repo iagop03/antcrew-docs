@@ -1,6 +1,8 @@
 # Platform
 
-antcrew-platform is the server-side application your team interacts with: a REST API, a WebSocket event bus, and a web dashboard. It does not execute agent code — it observes, stores, and gates it.
+The antcrew platform is the managed cloud service your team uses to observe, store, and gate AI agent workflows. It does not execute agent code — it receives runs from the engine, stores their full history, and surfaces review queues to your team.
+
+Access it at **[antcrew.org](https://antcrew.org)**.
 
 ---
 
@@ -22,14 +24,12 @@ antcrew-platform is the server-side application your team interacts with: a REST
 
 ## Real-time dashboard
 
-The dashboard subscribes to `/ws/runs/{run_id}` and updates live as events arrive. You see:
+The dashboard subscribes to live events and updates without polling. You see:
 
 - Current run status and elapsed time
 - TraceLog events as they stream in — each LLM call, tool invocation, intermediate result
 - Tickets as they are created
 - HITL review cards with the full context the agent passed in
-
-No polling. The platform pushes every event over WebSocket.
 
 ---
 
@@ -39,7 +39,6 @@ No polling. The platform pushes every event over WebSocket.
 erDiagram
     Workspace ||--o{ Run : "contains"
     Workspace ||--o{ ApiKey : "has"
-    Workspace ||--o{ LLMProviderKey : "stores"
     Run ||--o{ Event : "logs"
     Run ||--o{ Ticket : "generates"
     Run ||--o{ Review : "gates on"
@@ -60,7 +59,7 @@ erDiagram
 | **Eval** | Automated quality check over run output |
 | **Webhook** | Outbound HTTP call to your system on any platform event |
 
-[:octicons-arrow-right-24: Quick start — run your first pipeline](getting-started.md)
+[:octicons-arrow-right-24: Quick start — connect your first pipeline](getting-started.md)
 
 [:octicons-arrow-right-24: Workspaces & API keys](workspaces.md)
 

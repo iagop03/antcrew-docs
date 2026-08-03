@@ -1,12 +1,31 @@
 # Components & architecture
 
-antcrew is made of three independent pieces. Each can run without the others, but together they give you end-to-end observability and control over your AI pipelines.
+antcrew is made of four independent pieces. Each can run without the others, but together they give you end-to-end observability and control over your AI pipelines.
 
 ---
 
-## antcrew-engine — the SDK
+## antcrew — the agent framework
 
-`antcrew-engine` is a Python library. It lives inside your agent code, not on a server.
+`antcrew` is the Python package your team builds and ships agent logic with.
+
+**What it does:**
+
+- Provides ready-made agent roles — PM, developer, reviewer, QA — built on LangGraph
+- Ships a CLI (`antcrew run …`) to execute pipelines locally or in CI
+- Integrates with Slack, Telegram, and other notification channels
+- Depends on `antcrew-engine` for all LLM calls, tracing, and HITL logic
+
+**What it is not:** a server or a UI. It's a library you install in your project.
+
+```
+pip install antcrew
+```
+
+---
+
+## antcrew-engine — the core SDK
+
+`antcrew-engine` is the low-level Python library that the framework builds on. You can also use it directly without the full agent framework.
 
 **What it does:**
 
@@ -23,17 +42,17 @@ pip install antcrew-engine
 
 ---
 
-## antcrew-platform — the control plane
+## antcrew-platform — the cloud control plane
 
-`antcrew-platform` is a FastAPI web application. It runs on a server (Fly.io, Docker, bare metal).
+`antcrew-platform` is the managed web application running at [antcrew.org](https://antcrew.org).
 
 **What it does:**
 
 - Receives runs from the engine via `POST /runs`
-- Stores every event in PostgreSQL — status changes, TraceLog events, tickets created
-- Serves a real-time dashboard over WebSocket so your team can watch runs live
-- Manages HITL review queues — reviewers see pending approvals, can approve/reject/comment
-- Extracts structured **tickets** from run output and gives them workspace-scoped display IDs (`PROJ-00001`)
+- Stores every event — status changes, TraceLog events, tickets created — and serves them over a real-time WebSocket
+- Serves the dashboard so your team can watch runs live, review HITL queues, and inspect tickets
+- Manages HITL review queues — reviewers see pending approvals and can approve, reject, or comment
+- Extracts structured **tickets** from run output with workspace-scoped display IDs (`PROJ-00001`)
 - Sends outbound webhooks to your own systems when runs complete or reviews are needed
 
 **What it is not:** it never executes your agent code. It is an observer and gating layer, not a worker.
@@ -48,10 +67,10 @@ pip install antcrew-engine
 
 - Accepts model calls from the engine using the standard `POST /v1/chat/completions` interface
 - Looks up the caller's workspace in the platform and injects the right provider API key (BYOK)
-- Routes to the correct upstream provider based on the model prefix in the request
+- Routes to the correct upstream provider based on the model prefix in the request (`openai:`, `anthropic:`, `groq:`, `gemini:`…)
 - Your application code never handles LLM credentials directly
 
-**What it is not:** required. You can use the engine without the proxy by setting provider keys directly on the `Agent`. The proxy is valuable when you have multiple workspaces with different LLM budgets and key rotation requirements.
+**What it is not:** required. You can use the engine without the proxy by setting provider keys directly on the `Agent`. The proxy is valuable when you have multiple workspaces with different LLM budgets or key rotation requirements.
 
 ---
 
@@ -60,7 +79,7 @@ pip install antcrew-engine
 ```mermaid
 sequenceDiagram
     autonumber
-    participant Code as Your agent code<br/>(antcrew-engine)
+    participant Code as Your agent code<br/>(antcrew / antcrew-engine)
     participant Proxy as antcrew-proxy
     participant LLM as LLM provider
     participant Platform as antcrew-platform
@@ -88,12 +107,11 @@ sequenceDiagram
 
 ---
 
-## Deploying the three components
+## Component overview
 
-| Component | Language | Recommended hosting |
+| Component | Role | Where it runs |
 |---|---|---|
-| `antcrew-engine` | Python library | Ships with your agent code — no dedicated host |
-| `antcrew-platform` | Python / FastAPI | Fly.io, Docker, any cloud VM |
-| `antcrew-proxy` | Go | Fly.io, any cloud VM |
-
-See [Self-hosting](../platform/deployment.md) for the full deployment guide.
+| `antcrew` | Agent framework + CLI | Your codebase |
+| `antcrew-engine` | LLM calls, contracts, TraceLog, HITL | Your codebase |
+| `antcrew-platform` | Dashboard, storage, HITL reviews | antcrew.org (managed cloud) |
+| `antcrew-proxy` | LLM routing, BYOK key injection | antcrew.org or your own infra |
