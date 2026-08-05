@@ -1,44 +1,140 @@
-# Runs & Tickets
+# Runs & tickets
 
 ## Runs
 
-A **run** is the top-level unit of work. It maps to one execution of an agent pipeline.
+A **run** is one execution of an agent pipeline. Runs are async — the API accepts the request immediately (HTTP 202) and returns a `run_id`; the pipeline executes in the background.
 
-### Create a run
+### Start a run
 
-```http
-POST /api/runs
-X-API-Key: your-key
+```bash
+curl -X POST https://antcrew.org/run/ \
+  -H "X-Api-Key: acw_..." \
+  -H "Content-Type: application/json" \
+  -d '{"team": "DevTeam", "request": "Build a JWT authentication module"}'
+```
 
+```json
 {
-  "pipeline_def": "summarise-and-file",
-  "input": { "document_id": "doc_123" },
-  "template_id": "optional-template-id"
+  "status": "accepted",
+  "run_id": "abc123def456",
+  "team": "DevTeam",
+  "hint": "Poll GET /runs or connect to WS /ws/events for real-time updates"
 }
 ```
 
-Response includes `id`, `status`, and a WebSocket URL for live updates.
+### Available teams
+
+| Team | Agents | Best for |
+|---|---|---|
+| `DevTeam` | BA → PM → BackendDev | Feature tickets + backend implementation |
+| `FullStackTeam` | Scanner → BA → PM → Sprint → Backend → Frontend → QA → Reviewer → DevOps → DocWriter | Full sprint cycle |
+| `ResearchTeam` | Researcher → Copywriter | Research reports |
+| `ContentTeam` | Idea → Copywriter → Editor | Blog posts, content |
+| `FeatureTeam` | Feature | End-to-end feature implementation |
+
+List available teams at runtime: `GET /run/teams`
+
+List agents in a team: `GET /run/teams/{team}/agents`
+
+### Run parameters
+
+| Field | Type | Description |
+|---|---|---|
+| `team` | string | Team name (required) |
+| `request` | string | Task description (required) |
+| `thread_id` | string | Groups runs into a conversation thread (default `"default"`) |
+| `max_cost_usd` | float | Hard budget cap — run stops if exceeded |
+| `hitl` | bool | Pause at each checkpoint for human review |
+| `repo_url` | string | Git repo to clone and inject as context |
+| `repo_token` | string | PAT for private HTTPS repos (never stored) |
+| `model` | string | Run-level model override (e.g. `"groq:llama-3.3-70b-versatile"`) |
+| `model_overrides` | object | Per-agent model overrides — see [Model configuration](model-config.md) |
+| `client_label` | string | Cost-center / client tag for spend breakdown |
+| `write_back` | bool | Push generated artifacts to repo as a PR after run |
 
 ### Run statuses
 
 | Status | Meaning |
 |---|---|
-| `pending` | Queued, not yet started |
 | `running` | Actively executing |
-| `waiting_hitl` | Paused at a HITL checkpoint |
-| `completed` | Finished successfully |
-| `failed` | Ended with an error |
+| `success` | Finished successfully |
+| `error` | Ended with an error |
+| `cancelled` | Cancelled by user |
+
+### Poll and stream
+
+```bash
+# Get run details
+GET /runs/{run_id}
+
+# Get all events (stored)
+GET /runs/{run_id}/events
+
+# Stream events live (WebSocket — all runs)
+wss://antcrew.org/ws/events
+
+# Download final artifacts
+GET /runs/{run_id}/artifacts.zip
+```
+
+### Re-run
+
+In the dashboard, open a completed run and click **Re-run** in the sidebar to resubmit the same team and request. Via API, post to `/run/` again with the same body.
+
+---
+
+## Model configuration
+
+Override which LLM each agent uses at run level or workspace level. See [Model configuration](model-config.md) for the full reference including presets.
+
+**Quick example — mix models in one run:**
+
+```json
+{
+  "team": "FullStackTeam",
+  "request": "Add OAuth2 login",
+  "model_overrides": {
+    "default": "groq:llama-3.3-70b-versatile",
+    "BackendDevAgent": "claude:claude-sonnet-5",
+    "ReviewerAgent": "claude:claude-opus-5"
+  }
+}
+```
+
+---
 
 ## Tickets
 
-Tickets are structured action items extracted from run output.
+Tickets are structured action items extracted from run output by the `PMAgent`.
+
+### List tickets
+
+```bash
+GET /tickets/?run_id={run_id}
+GET /tickets/               # all tickets for the workspace
+```
 
 ### Display IDs
 
-Each workspace has a configurable prefix (e.g. `PROJ`). Tickets get sequential IDs: `PROJ-00001`, `PROJ-00002`, etc.
+Each workspace has a configurable prefix (e.g. `PROJ`). Tickets get sequential IDs: `PROJ-00001`, `PROJ-00002`, etc. Configure the prefix in **Settings → Ticket settings**.
 
-Configure the prefix in **Settings → Ticket Settings**.
+### GitHub linking
 
-### Linking to GitHub
+If a workspace has a GitHub repo configured, the ticket detail view shows linked commits and PRs that include the ticket display ID in their commit message.
 
-If a workspace has a GitHub repo configured, the ticket detail view shows linked commits and PRs that contain the ticket display ID in their message.
+---
+
+## Run templates
+
+Templates save a run configuration (team, request, cost cap, repo URL) for quick reuse.
+
+```bash
+# Save a template
+POST /templates/
+{ "name": "Auth sprint", "team": "DevTeam", "request": "Build auth module", "max_cost_usd": 2.00 }
+
+# List templates
+GET /templates/
+```
+
+Templates appear as chips in the **New Run** modal in the dashboard.

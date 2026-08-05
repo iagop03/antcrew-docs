@@ -55,9 +55,36 @@ curl -N https://antcrew.org/runs/abc123/events -H "X-Api-Key: acw_..."
 wscat -c wss://antcrew.org/ws/events -H "X-Api-Key: acw_..."
 ```
 
-## 5. Monitor in the dashboard
+## 5. Configure models per agent (optional)
 
-Open [antcrew.org](https://antcrew.org) in a browser. The **Runs** tab shows live status, agent event timelines, and generated tickets. The **Reviews** tab is where HITL decisions happen.
+By default every agent in a run uses the workspace's LLM. You can assign different models to different agents — either as a workspace default or per run.
+
+```bash
+# Set workspace defaults: fast model for most agents, stronger for backend
+curl -X PATCH https://antcrew.org/workspaces/{id}/agent-models \
+  -H "X-Api-Key: acw_..." \
+  -H "Content-Type: application/json" \
+  -d '{
+    "agent_models": {
+      "default": "groq:llama-3.3-70b-versatile",
+      "BackendDevAgent": "claude:claude-sonnet-5"
+    }
+  }'
+```
+
+Or override per run:
+
+```bash
+curl -X POST https://antcrew.org/run/ \
+  -H "X-Api-Key: acw_..." \
+  -d '{"team": "DevTeam", "request": "...", "model_overrides": {"BackendDevAgent": "deepseek:deepseek-chat"}}'
+```
+
+Save frequent configurations as **presets** in the dashboard (Runs → New Run → Configurar modelos por agente → Guardar preset). See [Model configuration](model-config.md) for the full reference.
+
+## 6. Monitor in the dashboard
+
+Open [antcrew.org](https://antcrew.org) in a browser. The **Runs** tab shows live status, agent event timelines, and generated tickets. The **Trace** tab in each run shows a per-agent execution timeline with model assignment, duration, and artifacts produced. The **Reviews** tab is where HITL decisions happen.
 
 ---
 

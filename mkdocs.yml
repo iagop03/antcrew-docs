@@ -81,6 +81,7 @@ nav:
     - "Workspaces & API keys": platform/workspaces.md
     - "CLI & API integration": platform/cli-integration.md
     - "Runs & tickets": platform/runs.md
+    - "Model configuration": platform/model-config.md
     - "HITL reviews": platform/hitl.md
     - Webhooks: platform/webhooks.md
     - Evals: platform/evals.md
