@@ -32,9 +32,8 @@ Add them to your `.env` file or shell profile so they persist across sessions.
 ## 2. Launch a run from the CLI
 
 ```bash
-antcrew run \
-  --team DevTeam \
-  --request "Build a REST API for user authentication" \
+antcrew run "Build a REST API for user authentication" \
+  --team dev \
   --platform-url "$ANTCREW_PLATFORM_URL" \
   --api-key "$ANTCREW_API_KEY"
 ```
@@ -42,10 +41,14 @@ antcrew run \
 Or use environment variables so you don't need to pass them every time:
 
 ```bash
-antcrew run --team DevTeam --request "Refactor the auth module"
+antcrew run "Refactor the auth module" --team dev
 ```
 
 The CLI picks up `ANTCREW_PLATFORM_URL` and `ANTCREW_API_KEY` automatically.
+
+!!! note "CLI syntax"
+    The run request is a **positional argument**, not a flag. Valid `--team` values are lowercase:
+    `dev`, `fullstack`, `minimal`, `research`, `content`, `custom`, `feature`, `auto`, `routed`, `direct`.
 
 ---
 
@@ -145,9 +148,8 @@ For CI/CD pipelines, use a `write` key. For human reviewers who only need to app
     ANTCREW_PLATFORM_URL: ${{ secrets.ANTCREW_PLATFORM_URL }}
     ANTCREW_API_KEY: ${{ secrets.ANTCREW_API_KEY }}
   run: |
-    antcrew run \
-      --team DevTeam \
-      --request "Review and test the changes in this PR" \
+    antcrew run "Review and test the changes in this PR" \
+      --team dev \
       --wait          # block until the run completes
 ```
 

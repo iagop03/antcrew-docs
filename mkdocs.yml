@@ -74,6 +74,7 @@ nav:
     - "Typed contracts": engine/contracts.md
     - "LLM providers": engine/providers.md
     - "TraceLog & Replay": engine/tracelog.md
+    - "Event payload schema": engine/event-schema.md
     - "Custom agents": engine/custom-agents.md
   - Platform:
     - Overview: platform/index.md
@@ -85,7 +86,10 @@ nav:
     - "HITL reviews": platform/hitl.md
     - Webhooks: platform/webhooks.md
     - Evals: platform/evals.md
+    - "Data retention": platform/data-retention.md
   - Proxy:
     - Overview: proxy/index.md
     - Configuration: proxy/configuration.md
     - "Provider routing": proxy/routing.md
+  - Releases:
+    - "Week of 4 Aug 2026": releases/2026-w32.md
