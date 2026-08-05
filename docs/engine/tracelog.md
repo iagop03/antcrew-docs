@@ -52,3 +52,18 @@ agent = Agent(
 ```
 
 All events are streamed to the platform in real time and visible in the Runs dashboard.
+
+## Trace tab in the dashboard
+
+When a run executes through antcrew-platform (via `POST /run/`), the run detail page exposes a **Trace** tab that renders the TraceLog as a human-readable timeline:
+
+- One card per agent, in execution order
+- Status indicator (running / done) with duration
+- Produced artifact keys shown as chips
+- Live token stream while the agent is still running
+- Model override label when the agent used a non-default model
+
+The Trace tab is the primary surface for debugging agent behaviour without touching logs or raw JSON. For programmatic access to the same data, use `GET /runs/{run_id}/events`.
+
+!!! tip "Per-agent model config"
+    The model shown in the Trace tab reflects the resolved model after applying `run.model_overrides` → `workspace.agent_models` → platform default. See [Model configuration](../platform/model-config.md) to configure which model each agent uses.

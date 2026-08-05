@@ -48,12 +48,14 @@ pip install antcrew-engine
 
 **What it does:**
 
-- Receives runs from the engine via `POST /runs`
+- Receives runs from the engine via `POST /run/` and dispatches them to a background thread pool
 - Stores every event — status changes, TraceLog events, tickets created — and serves them over a real-time WebSocket
-- Serves the dashboard so your team can watch runs live, review HITL queues, and inspect tickets
+- Serves the dashboard so your team can watch runs live, review HITL queues, and inspect tickets via the **Trace** tab
 - Manages HITL review queues — reviewers see pending approvals and can approve, reject, or comment
 - Extracts structured **tickets** from run output with workspace-scoped display IDs (`PROJ-00001`)
 - Sends outbound webhooks to your own systems when runs complete or reviews are needed
+- Configures **per-agent model overrides** at workspace level or per run — so different agents in the same pipeline can use different LLMs (see [Model configuration](../platform/model-config.md))
+- Stores **run presets** — named `{team, model_overrides}` configurations reusable across runs
 
 **What it is not:** it never executes your agent code. It is an observer and gating layer, not a worker.
 
