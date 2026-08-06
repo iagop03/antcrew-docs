@@ -41,7 +41,7 @@ MFA can be disabled at any time via `POST /auth/mfa/disable` (requires CSRF toke
 
 ## LLM key storage (BYOK)
 
-Per-workspace LLM provider keys are encrypted at rest using Fernet (AES-128-CBC) under `BYOK_ENCRYPTION_KEY`. The encryption key is an environment variable on the Fly/Cloud Run instance — it is never transmitted over the network.
+Per-workspace LLM provider keys are encrypted at rest using Fernet (AES-128-CBC) under `BYOK_ENCRYPTION_KEY`. The encryption key is an environment variable on the server — Hetzner for PROD, Fly.io for INT — it is never transmitted over the network.
 
 A single `BYOK_ENCRYPTION_KEY` protects all workspaces on the same instance. For workspaces requiring HSM-grade isolation, self-host with a KMS integration.
 
@@ -78,16 +78,16 @@ curl -X POST https://your-platform.example.com/admin/make-admin \
 
 | Secret | Scope | Used by |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | LLM inference | Runtime — required |
+| `ANTHROPIC_API_KEY` | LLM inference | Runtime — required for Managed mode |
 | `BYOK_ENCRYPTION_KEY` | Per-workspace key encryption | Runtime — required for BYOK |
 | `PLATFORM_ADMIN_TOKEN` | Admin bootstrap | Runtime — set once |
 | `PLATFORM_API_KEY` | Master API key (optional) | Runtime |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASSWORD` | Email sending | Runtime — required for email |
 | `HCLOUD_TOKEN` | Hetzner API | `deploy.yml` — create/delete UAT server |
-| `HETZNER_SSH_PRIVATE_KEY` | SSH into UAT server | `deploy.yml` |
-| `UAT_DATABASE_URL` | PostgreSQL connection | UAT server runtime |
-| `UAT_SECRET_KEY` | App session signing | UAT server runtime |
-| `FLY_API_TOKEN` | Fly.io deploy | `deploy.yml` — INT deploy |
+| `HETZNER_SSH_PRIVATE_KEY` | SSH into UAT and PROD servers | `deploy.yml` |
+| `PROD_SERVER_IP` | Hetzner PROD server IP | `deploy.yml` — PROD deploy target |
+| `DATABASE_URL` | PostgreSQL connection | UAT and PROD runtime |
+| `FLY_API_TOKEN` | Fly.io deploy | `deploy.yml` — INT deploy (auto on push to main) |
 | `CLOUDFLARE_TOKEN` | DNS API | `deploy.yml` — update platform-uat DNS |
 
 See the full [configuration reference](../platform/configuration.md) for all variables.

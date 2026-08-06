@@ -67,7 +67,7 @@ curl -X PATCH https://antcrew.org/workspaces/{id}/agent-models \
   -d '{
     "agent_models": {
       "default": "groq:llama-3.3-70b-versatile",
-      "BackendDevAgent": "claude:claude-sonnet-5"
+      "BackendDevAgent": "claude-sonnet-5"
     }
   }'
 ```
