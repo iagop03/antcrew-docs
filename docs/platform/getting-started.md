@@ -42,6 +42,29 @@ r = client.post("/run/", json={
 run_id = r.json()["run_id"]
 ```
 
+## 3b. Conversational discovery (alternative)
+
+If the request isn't clear-cut, use the **Discover** tab before creating a run. The `DiscoveryAgent` asks 1–7 targeted questions, then a "Finalizar y crear run" button converts the gathered requirements into a pre-filled run.
+
+You can also drive it via API:
+
+```bash
+# Start a discovery session
+curl -X POST https://antcrew.org/discovery/ \
+  -H "X-Api-Key: acw_..." \
+  -H "Content-Type: application/json" \
+  -d '{"request": "I need something but am not sure of the scope"}'
+# → {"session_id": "...", "question": "What is the main goal of this feature?", "round": 1}
+
+# Answer each question — repeat until status="complete"
+curl -X POST https://antcrew.org/discovery/{session_id}/answer \
+  -H "X-Api-Key: acw_..." \
+  -H "Content-Type: application/json" \
+  -d '{"answer": "A user authentication module with OAuth and email verification"}'
+```
+
+Discovery sessions expire after `DISCOVERY_SESSION_TTL_DAYS` days of inactivity (default: 7).
+
 ## 4. Stream events
 
 ```bash
@@ -112,3 +135,6 @@ Browser sessions use an `antcrew_session` cookie. API clients use `X-Api-Key`.
 | **Proxy** | Your key, via `antcrew-proxy` | ×0.7 | Run `antcrew-proxy`; Settings → Providers → set proxy URL |
 
 BYOK and Proxy keys are encrypted at rest and never stored in plaintext.
+
+> **Trial accounts** start with a **$5.00 credit** in Managed mode. When the credit is exhausted the next run returns an error showing the amount spent. Upgrade to a paid plan from workspace settings to continue.
+> The credit limit is configurable via the `TRIAL_CREDIT_USD` environment variable (platform admins only).
