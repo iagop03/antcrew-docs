@@ -50,14 +50,14 @@ You can also drive it via API:
 
 ```bash
 # Start a discovery session
-curl -X POST https://antcrew.org/discovery/ \
+curl -X POST https://antcrew.org/discovery/sessions \
   -H "X-Api-Key: acw_..." \
   -H "Content-Type: application/json" \
   -d '{"request": "I need something but am not sure of the scope"}'
 # → {"session_id": "...", "question": "What is the main goal of this feature?", "round": 1}
 
 # Answer each question — repeat until status="complete"
-curl -X POST https://antcrew.org/discovery/{session_id}/answer \
+curl -X POST https://antcrew.org/discovery/sessions/{session_id}/answer \
   -H "X-Api-Key: acw_..." \
   -H "Content-Type: application/json" \
   -d '{"answer": "A user authentication module with OAuth and email verification"}'
