@@ -66,6 +66,7 @@ nav:
   - Home: index.md
   - How it works:
     - "Components & architecture": architecture/overview.md
+    - "Architecture decisions": architecture/decisions.md
     - "A full team in action": guides/fullstack-team.md
     - "Run lifecycle & events": architecture/data-flow.md
     - Security: architecture/security.md
@@ -84,6 +85,7 @@ nav:
     - "Runs & tickets": platform/runs.md
     - "Model configuration": platform/model-config.md
     - "HITL reviews": platform/hitl.md
+    - "GitHub App": platform/github-app.md
     - Webhooks: platform/webhooks.md
     - Evals: platform/evals.md
     - "Data retention": platform/data-retention.md
@@ -92,4 +94,5 @@ nav:
     - Configuration: proxy/configuration.md
     - "Provider routing": proxy/routing.md
   - Releases:
+    - "Week of 11 Aug 2026": releases/2026-w33.md
     - "Week of 4 Aug 2026": releases/2026-w32.md

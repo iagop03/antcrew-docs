@@ -1,38 +1,75 @@
 # Providers
 
-antcrew-engine supports every major LLM provider through a single string prefix.
+antcrew-engine supports 16 LLM providers through a single string prefix. The full list is also available at runtime via `GET /engine/supported-providers`.
 
-## Supported prefixes
+## Supported providers
 
-| Prefix | Provider | Example model |
-|---|---|---|
-| `openai:` | OpenAI | `openai:gpt-4o` |
-| `anthropic:` | Anthropic | `anthropic:claude-sonnet-5` |
-| `groq:` | Groq | `groq:llama-3.3-70b-versatile` |
-| `gemini:` | Google Gemini | `gemini:gemini-2.0-flash` |
-| `moonshot:` | Moonshot AI | `moonshot:moonshot-v1-8k` |
-| `simulated:` | Built-in mock | `simulated:echo` |
+| Prefix | Provider | BYOK key | Example model string |
+|---|---|---|---|
+| `claude:` | Anthropic Claude | `anthropic` | `claude:claude-sonnet-5` |
+| `openai:` | OpenAI | `openai` | `gpt-4o` |
+| `gemini:` | Google Gemini | `gemini` | `gemini:gemini-2.0-flash` |
+| `groq:` | Groq | `groq` | `groq:llama-3.1-70b-versatile` |
+| `deepseek:` | DeepSeek | `deepseek` | `deepseek:deepseek-chat` |
+| `mistral:` | Mistral AI | `mistral` | `mistral:mistral-large-latest` |
+| `xai:` | xAI Grok | `xai` | `xai:grok-3` |
+| `together:` | Together AI | `together` | `together:meta-llama/Llama-3-70b-chat-hf` |
+| `fireworks:` | Fireworks AI | `fireworks` | `fireworks:accounts/fireworks/models/llama-v3p1-70b-instruct` |
+| `cerebras:` | Cerebras | `cerebras` | `cerebras:llama3.1-70b` |
+| `moonshot:` | Moonshot AI | `moonshot` | `moonshot:moonshot-v1-8k` |
+| `azure:` | Azure OpenAI | `azure` | `azure:gpt-4o` |
+| `ollama:` | Ollama (local) | — | `ollama:llama3.2` |
+| `lmstudio:` | LM Studio (local) | — | `lmstudio:lmstudio-community/Meta-Llama-3.1-8B-Instruct-GGUF` |
+| `vllm:` | vLLM (local) | — | `vllm:meta-llama/Meta-Llama-3-8B-Instruct` |
+| `simulated` | Simulated (testing) | — | `simulated` |
+
+Providers with a **BYOK key** require an API key stored in your workspace's LLM keys (`PATCH /workspaces/{id}/llm-keys`). Local providers (Ollama, LM Studio, vLLM) and `simulated` need no key.
 
 ## Switching providers
 
 ```python
-# GPT-4o
-agent = Agent(model="openai:gpt-4o")
+from antcrew_engine import Agent
 
-# Claude — same code, different model string
-agent = Agent(model="anthropic:claude-sonnet-5")
-
-# Free local mock for tests
-agent = Agent(model="simulated:echo")
+agent = Agent(model="claude:claude-sonnet-5")       # Anthropic
+agent = Agent(model="gpt-4o")                       # OpenAI
+agent = Agent(model="groq:llama-3.1-70b-versatile") # Groq
+agent = Agent(model="deepseek:deepseek-reasoner")   # DeepSeek R1
+agent = Agent(model="ollama:llama3.2")              # local Ollama
+agent = Agent(model="simulated")                    # deterministic mock
 ```
 
-## BYOK via the Proxy
+## BYOK via the platform
 
-When using antcrew-proxy, your keys are stored in the platform and injected at request time. Your application code never handles credentials directly:
+When using antcrew-platform, store your API keys in workspace settings (**Settings → LLM keys**) rather than in environment variables. The platform injects the correct key at run time based on the model prefix.
+
+```bash
+# Store a Groq key for the workspace
+curl -X PATCH https://antcrew.org/workspaces/42/llm-keys \
+  -H "X-Api-Key: acw_..." \
+  -H "Content-Type: application/json" \
+  -d '{"groq": "gsk_..."}'
+```
+
+Once stored, any run in the workspace can use `groq:*` models without setting `GROQ_API_KEY` in the environment.
+
+## BYOK via the proxy
+
+When using antcrew-proxy, your keys are stored in the proxy and injected at request time. Application code never handles credentials directly:
 
 ```python
 agent = Agent(
     model="openai:gpt-4o",
-    base_url="https://proxy.antcrew.org",  # proxy handles the key
+    base_url="https://proxy.antcrew.org",  # proxy injects the key
 )
 ```
+
+## Discover which providers are active for your workspace
+
+The model selector in the **Discover** page automatically filters to providers your workspace has keys for. From the API:
+
+```bash
+GET /engine/supported-providers   # full list (16 providers)
+GET /workspaces/{id}              # includes byok_providers: ["groq", "deepseek", ...]
+```
+
+`byok_providers` lists which BYOK keys are configured. Cross-reference with the `byok_key` field from `/engine/supported-providers` to know which prefixes are ready to use.

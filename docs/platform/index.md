@@ -18,6 +18,8 @@ Access it at **[antcrew.org](https://antcrew.org)**.
 
 **Evals** — automated quality checks that run against past runs on a schedule or on demand.
 
+**GitHub App** — connects repositories to workspaces for write-back (open PRs from runs) and push triggers (auto-dispatch a run on every push).
+
 **Webhooks** — outbound notifications to your own endpoints when runs complete, tickets are created, or reviews are resolved.
 
 ---
@@ -66,3 +68,5 @@ erDiagram
 [:octicons-arrow-right-24: Runs & tickets](runs.md)
 
 [:octicons-arrow-right-24: HITL reviews](hitl.md)
+
+[:octicons-arrow-right-24: GitHub App integration](github-app.md)

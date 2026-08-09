@@ -1,13 +1,35 @@
 # Model configuration
 
-antcrew lets you control which LLM each agent uses at three levels of specificity, applied in this order at run time:
+antcrew lets you control which LLM each agent uses at four levels of specificity, applied in this order at run time:
 
 ```
 run.model_overrides[agent]          ← highest priority (per-run, per-agent)
   workspace.agent_models[agent]     ← workspace default for that agent
     workspace.agent_models["default"]  ← workspace-wide fallback
-      platform default ("claude")      ← lowest priority
+      platform.default_agent_models["default"]  ← platform-wide admin default
+        "claude"                    ← lowest priority (hard-coded fallback)
 ```
+
+## Platform-level default (admin only)
+
+Platform admins can set the default model that applies across all workspaces that have no workspace-level override. This is useful for switching the entire platform from `claude` to a cheaper model without touching every workspace.
+
+Configured in the **Admin → Platform defaults** section of the admin panel, or via API:
+
+```bash
+# Read current platform default
+GET /admin/agent-models/defaults
+Authorization: Bearer <admin-session>
+
+# Set a new platform default
+curl -X PATCH https://antcrew.org/admin/agent-models/defaults \
+  -H "Content-Type: application/json" \
+  -d '{"default_agent_models": {"default": "groq:llama-3.1-70b-versatile"}}'
+```
+
+Workspaces that have an explicit `workspace.agent_models["default"]` are not affected. The platform default only fills the gap when the workspace has no preference.
+
+Workspace members can read the current platform default from `GET /engine/platform-defaults` (API-key accessible, no admin required) — this is what the Settings model matrix "plataforma" row shows.
 
 ## Workspace-level defaults
 
