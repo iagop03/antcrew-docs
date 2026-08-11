@@ -12,6 +12,7 @@ Only `ANTHROPIC_API_KEY` is required for a local dev run with SQLite.
 |---|---|---|
 | `DATABASE_URL` | `sqlite+aiosqlite:///platform.db` | DB connection string. Use `postgresql+asyncpg://user:pass@host/db` in production. |
 | `ANTHROPIC_API_KEY` | — | **Required.** Default LLM key for managed mode. |
+| `REDIS_URL` | — | Redis connection string (e.g. `redis://localhost:6379/0`). Required in production for the sliding-window rate limiter. When unset, rate limiting is skipped (dev/SQLite only). |
 | `BASE_URL` | `https://app.antcrew.ai` | Public base URL embedded in invite and join-request emails. |
 | `PLATFORM_BASE_URL` | — | Public base URL embedded in HITL review links sent via webhooks/Slack. |
 | `ANTCREW_WORKERS` | `4` | Background thread pool size for engine runs. |

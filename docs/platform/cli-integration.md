@@ -74,7 +74,7 @@ with httpx.Client(base_url=BASE, headers={"X-Api-Key": KEY}) as client:
     while True:
         status = client.get(f"/runs/{run_id}").json()["status"]
         print(f"Status: {status}")
-        if status in ("completed", "failed", "cancelled"):
+        if status in ("success", "error", "cancelled"):
             break
         time.sleep(3)
 

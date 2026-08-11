@@ -72,11 +72,11 @@ nav:
     - Security: architecture/security.md
   - Engine SDK:
     - Overview: engine/index.md
-    - "Typed contracts": engine/contracts.md
+    - "Typed artifacts": engine/contracts.md
     - "LLM providers": engine/providers.md
     - "TraceLog & Replay": engine/tracelog.md
     - "Event payload schema": engine/event-schema.md
-    - "Custom agents": engine/custom-agents.md
+    - "Custom capabilities": engine/custom-agents.md
   - Platform:
     - Overview: platform/index.md
     - "Quick start": platform/getting-started.md

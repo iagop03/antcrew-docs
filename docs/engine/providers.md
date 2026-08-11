@@ -28,14 +28,14 @@ Providers with a **BYOK key** require an API key stored in your workspace's LLM 
 ## Switching providers
 
 ```python
-from antcrew_engine import Agent
+from antcrew_engine.config import build_llm
 
-agent = Agent(model="claude:claude-sonnet-5")       # Anthropic
-agent = Agent(model="gpt-4o")                       # OpenAI
-agent = Agent(model="groq:llama-3.1-70b-versatile") # Groq
-agent = Agent(model="deepseek:deepseek-reasoner")   # DeepSeek R1
-agent = Agent(model="ollama:llama3.2")              # local Ollama
-agent = Agent(model="simulated")                    # deterministic mock
+llm = build_llm("claude:claude-sonnet-5")       # Anthropic
+llm = build_llm("openai:gpt-4o")               # OpenAI
+llm = build_llm("groq:llama-3.1-70b-versatile") # Groq
+llm = build_llm("deepseek:deepseek-reasoner")   # DeepSeek R1
+llm = build_llm("ollama:llama3.2")             # local Ollama
+llm = build_llm("simulated")                   # deterministic mock
 ```
 
 ## BYOK via the platform
@@ -57,10 +57,8 @@ Once stored, any run in the workspace can use `groq:*` models without setting `G
 When using antcrew-proxy, your keys are stored in the proxy and injected at request time. Application code never handles credentials directly:
 
 ```python
-agent = Agent(
-    model="openai:gpt-4o",
-    base_url="https://proxy.antcrew.org",  # proxy injects the key
-)
+llm = build_llm("openai:gpt-4o", base_url="https://proxy.antcrew.org")
+# proxy injects the real key — your code never handles credentials
 ```
 
 ## Discover which providers are active for your workspace

@@ -29,10 +29,10 @@ pip install antcrew
 
 **What it does:**
 
-- Turns Python functions into LLM prompts via `@contract` — the docstring becomes the system prompt, the type annotations enforce the output schema
-- Runs every LLM call through a configurable provider (`openai:gpt-4o`, `anthropic:claude-opus-5`, `simulated:echo` for tests…)
-- Writes every token, tool call, and intermediate result to a **TraceLog** — a structured, append-only record of the full run
-- Exposes `hitl_checkpoint()` — a blocking call that pauses agent execution and waits for a human to approve before continuing
+- Runs capabilities (Architect, TaskPlanner, CodeGenerator, TestRunner…) through an `EngineLoop` that selects and dispatches work until the goal is satisfied
+- Runs every LLM call through a configurable provider (`openai:gpt-4o`, `anthropic:claude-opus-5`, `simulated:echo` for tests…) via `build_llm()`
+- Writes every token, capability result, and intermediate artifact to an **EventLog** — a structured, append-only record of the full run
+- Ships a `HitlReviewer` capability that pauses execution and waits for a human to approve before continuing
 
 **What it is not:** a server, a database, or a UI. It's a library.
 
@@ -114,6 +114,6 @@ sequenceDiagram
 | Component | Role | Where it runs |
 |---|---|---|
 | `antcrew` | Agent framework + CLI | Your codebase |
-| `antcrew-engine` | LLM calls, contracts, TraceLog, HITL | Your codebase |
+| `antcrew-engine` | EngineLoop, capabilities, EventLog, HITL | Your codebase |
 | `antcrew-platform` | Dashboard, storage, HITL reviews | antcrew.org (managed cloud) |
 | `antcrew-proxy` | LLM routing, BYOK key injection | antcrew.org or your own infra |

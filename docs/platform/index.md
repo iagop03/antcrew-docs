@@ -12,7 +12,7 @@ Access it at **[antcrew.org](https://antcrew.org)**.
 
 **Tickets** — structured action items extracted from run output. Each workspace has a configurable prefix (`PROJ`, `ENG`, `BUG`…). Tickets get sequential display IDs — `PROJ-00001`, `PROJ-00002` — and link back to the run that created them.
 
-**HITL reviews** — when an agent calls `hitl_checkpoint()`, the engine sends a review request to the platform. The platform queues it, notifies the right reviewer, and holds the `resume` signal until they approve or reject.
+**HITL reviews** — when the engine reaches a HITL checkpoint (via the `HitlReviewer` capability), it sends a review request to the platform. The platform queues it, notifies the right reviewer, and holds the `resume` signal until they approve or reject.
 
 **Workspaces** — isolated tenants. Each workspace has its own API keys, members, ticket prefix, provider keys, and run history. Nothing leaks between workspaces.
 

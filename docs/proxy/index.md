@@ -4,9 +4,9 @@
 
 ## Why use the proxy?
 
-- **BYOK without touching keys in code** — keys live in the platform, not in your app
+- **BYOK without touching keys in code** — keys live in your proxy, not in the platform
 - **Drop-in replacement** — change `base_url` only, no other code changes
-- **Provider routing** — route `openai:*` to OpenAI, `anthropic:*` to Anthropic, etc.
+- **14 providers supported** — Anthropic, OpenAI, Groq, Gemini, Moonshot, DeepSeek, Mistral, xAI, Together, Fireworks, Cerebras, Ollama, LM Studio, vLLM
 - **Observability** — every request is logged with tokens, cost, and latency
 
 ## Quick start

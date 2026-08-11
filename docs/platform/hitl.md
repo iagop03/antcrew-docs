@@ -4,7 +4,7 @@
 
 ## Creating a review
 
-Reviews are created automatically when a run hits a `hitl_checkpoint`, or manually from the dashboard.
+Reviews are created automatically when the engine reaches a HITL checkpoint (via the `HitlReviewer` capability), or manually from the dashboard.
 
 ## Review workflow
 

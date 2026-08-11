@@ -15,12 +15,24 @@ A workspace is an isolated tenant. Everything — runs, tickets, reviews, provid
 
 ## API Keys
 
-Each workspace has one or more API keys. Use them in the `X-API-Key` header for all API requests and in the antcrew-engine SDK.
+Each workspace has one or more API keys. Use them in the `X-Api-Key` header for all REST API requests:
+
+```bash
+curl https://antcrew.org/run/ \
+  -H "X-Api-Key: acw_live_..." \
+  -H "Content-Type: application/json" \
+  -d '{"team": "DevTeam", "request": "..."}'
+```
+
+Pass the key to `EventBusBridge` when streaming engine events to the platform:
 
 ```python
-agent = Agent(
-    model="openai:gpt-4o",
-    platform_api_key="acw_live_...",
+from antcrew_engine.engine import EventBusBridge
+
+bridge = EventBusBridge(
+    platform_url="https://antcrew.org",
+    api_key="acw_live_...",
+    run_id="run_abc123",
 )
 ```
 

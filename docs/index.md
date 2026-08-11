@@ -24,13 +24,13 @@
 
     ---
 
-    The low-level library powering the framework. Defines `@contract` for typed LLM calls, writes every token to a TraceLog, and exposes `hitl_checkpoint()` to pause execution for human review.
+    The autonomous execution engine powering the framework. An `EngineLoop` drives capabilities (Architect, CodeGenerator, TestRunner…) toward a goal, writes every event to a structured log, and raises HITL checkpoints that the platform surfaces for human review.
 
     ```bash
     pip install antcrew-engine
     ```
 
-    [:octicons-arrow-right-24: Typed contracts](engine/contracts.md)
+    [:octicons-arrow-right-24: Engine SDK](engine/index.md)
 
 -   **antcrew-platform** · Cloud control plane
 
@@ -44,7 +44,7 @@
 
     ---
 
-    An OpenAI-compatible proxy that routes model calls to any provider — OpenAI, Anthropic, Groq, Gemini — with BYOK key management and per-workspace routing rules.
+    A reverse proxy that routes model calls to any provider — OpenAI, Anthropic, Groq, Gemini, Moonshot, DeepSeek, Mistral, xAI, Ollama, and more — with BYOK key management and per-workspace routing rules.
 
     [:octicons-arrow-right-24: Proxy](proxy/index.md)
 
@@ -58,7 +58,7 @@
 flowchart LR
     subgraph code["Your code"]
         AC["antcrew\nAgent framework + CLI"]
-        ENG["antcrew-engine\n@contract · hitl_checkpoint"]
+        ENG["antcrew-engine\nEngineLoop · Capabilities · EventLog"]
     end
 
     subgraph infra["antcrew infrastructure"]
@@ -89,4 +89,4 @@ flowchart LR
 
 - **New to antcrew?** Read [A full team in action](guides/fullstack-team.md) — a complete walkthrough from prompt to shipped code.
 - **Ready to build?** Follow the [Quick start](platform/getting-started.md) to connect your first agent pipeline in minutes.
-- **Just the SDK?** Jump to [Typed contracts](engine/contracts.md) if you already have a platform account.
+- **Just the SDK?** Jump to [Engine SDK](engine/index.md) if you already have a platform account.

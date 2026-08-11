@@ -1,69 +1,76 @@
-# TraceLog & Replay
+# EventLog & Replay
 
-Every run executed by antcrew-engine produces a **TraceLog** — a structured, append-only log of every LLM call, tool invocation, and intermediate result.
+Every run executed by antcrew-engine produces a structured **EventLog** — an append-only record of every capability dispatch, result, HITL checkpoint, and error.
 
 ## What gets logged
 
 ```mermaid
 graph TD
-    A[Agent.run called] --> B[TraceLog: run_start]
-    B --> C[LLM request]
-    C --> D[TraceLog: llm_request + tokens]
-    D --> E{Tool call?}
-    E -->|yes| F[TraceLog: tool_call + result]
-    F --> C
-    E -->|no| G[Parse output]
-    G --> H{Valid?}
-    H -->|no| I[TraceLog: validation_error]
-    I --> C
-    H -->|yes| J[TraceLog: run_complete]
+    A[EngineLoop.run called] --> B[EventLog: EngineStarted]
+    B --> C[Capability selected]
+    C --> D[EventLog: CapabilityDispatched]
+    D --> E[Capability runs]
+    E --> F[EventLog: CapabilityCompleted]
+    F --> G{Goal satisfied?}
+    G -->|no| C
+    G -->|yes| H[EventLog: EngineFinished]
+    E -->|error| I[EventLog: EngineError]
 ```
 
-## Replay
+## Event types
 
-Any past run can be replayed exactly from its TraceLog without making new LLM calls:
+| Event class | When emitted |
+|---|---|
+| `EngineStarted` | Loop begins |
+| `StateObserved` | After each validator pass |
+| `EngineDecision` | Capability selected by the decision policy |
+| `CapabilityDispatched` | Before capability.run() is called |
+| `CapabilityCompleted` | After capability.run() succeeds |
+| `ConditionSatisfied` | A goal condition transitions to satisfied |
+| `CapabilityProgress` | Mid-run progress update (token stream, partial output) |
+| `EngineFinished` | All conditions satisfied — loop exits normally |
+| `EngineError` | Loop exits with STUCK / TIMEOUT / NO_PROGRESS / CANCELLED |
+
+## Collecting events in memory
 
 ```python
-from antcrew import replay_run
+from antcrew_engine.engine import EventLog
 
-# Replay a past run from its ID
-result = replay_run("run_01HXYZ...")
+log = EventLog()
+engine = EngineLoop(registry, validators, log)
+engine.run(store, goal)
+
+for event in log.events:
+    print(event.kind, event.timestamp)
 ```
 
-Useful for:
+## Streaming events to the platform
 
-- Debugging — step through exactly what the agent did
-- Testing — assert on deterministic outputs without API costs
-- Audit — demonstrate to stakeholders what the model decided and why
-
-## Shipping logs to the Platform
+`EventBusBridge` forwards each event to antcrew-platform in real time so runs appear live in the dashboard:
 
 ```python
-from antcrew import Agent
-from antcrew.platform import PlatformSink
+from antcrew_engine.engine import EventBusBridge
 
-agent = Agent(
-    model="openai:gpt-4o-mini",
-    trace_sink=PlatformSink(
-        base_url="https://platform-int.antcrew.org",
-        api_key="your-key",
-    ),
+bridge = EventBusBridge(
+    platform_url="https://antcrew.org",
+    api_key="acw_live_...",
+    run_id="run_01HXYZ...",
 )
+engine = EngineLoop(registry, validators, bridge)
 ```
 
-All events are streamed to the platform in real time and visible in the Runs dashboard.
+All events are visible in the run's **Trace** tab — one card per capability, with duration, cost, and produced artifact keys.
 
 ## Trace tab in the dashboard
 
-When a run executes through antcrew-platform (via `POST /run/`), the run detail page exposes a **Trace** tab that renders the TraceLog as a human-readable timeline:
+When a run is started via `POST /engine/run`, the platform assigns a `run_id` and the engine streams events to it automatically. The run detail page exposes a **Trace** tab that renders the EventLog as a human-readable timeline:
 
-- One card per agent, in execution order
-- Status indicator (running / done) with duration
+- One card per capability, in execution order
+- Status indicator (running / done) with duration and cost
 - Produced artifact keys shown as chips
-- Live token stream while the agent is still running
-- Model override label when the agent used a non-default model
+- Live token stream while the capability is still running
 
-The Trace tab is the primary surface for debugging agent behaviour without touching logs or raw JSON. For programmatic access to the same data, use `GET /runs/{run_id}/events`.
+For programmatic access to the same data, use `GET /runs/{run_id}/events`.
 
 !!! tip "Per-agent model config"
-    The model shown in the Trace tab reflects the resolved model after applying `run.model_overrides` → `workspace.agent_models` → platform default. See [Model configuration](../platform/model-config.md) to configure which model each agent uses.
+    The model shown in the Trace tab reflects the resolved model after applying `run.model_overrides` → `workspace.agent_models` → platform default. See [Model configuration](../platform/model-config.md) to configure which model each capability uses.

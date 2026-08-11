@@ -9,7 +9,7 @@ stateDiagram-v2
     direction LR
     [*] --> pending : POST /runs
     pending --> running : worker picks up
-    running --> waiting_hitl : hitl_checkpoint() called
+    running --> waiting_hitl : HitlReviewer fires
     waiting_hitl --> running : reviewer approves
     waiting_hitl --> failed : reviewer rejects
     running --> completed : all steps finished
@@ -22,22 +22,21 @@ stateDiagram-v2
 
 ---
 
-## TraceLog event types
+## Event types
 
-The engine writes one event per significant action. All events are persisted in PostgreSQL and streamed over WebSocket to any connected dashboard.
+The engine writes one event per significant action via `EventBusBridge`. All events are persisted in PostgreSQL and streamed over WebSocket to any connected dashboard.
 
 | Event type | When it fires |
 |---|---|
-| `run_start` | `Agent.run()` is called |
-| `llm_request` | A model call is sent — includes model, prompt, parameters |
-| `llm_response` | The model responds — includes completion, token counts, latency |
-| `tool_call` | The model invokes a tool or function |
-| `tool_result` | The tool returns a result |
-| `validation_error` | The output didn't match the contract schema — engine will retry |
-| `hitl_requested` | `hitl_checkpoint()` was called — run is now `waiting_hitl` |
-| `hitl_resolved` | A human approved or rejected — run resumes or fails |
-| `run_complete` | All steps finished successfully |
-| `run_error` | An unhandled exception ended the run |
+| `pipeline.start` | Run begins execution |
+| `agent.start` | A capability is dispatched |
+| `agent.token` | Streaming token chunk from an LLM-backed capability — **not stored**, only live WebSocket |
+| `agent.end` | Capability completes (success or error) — includes duration, cost, tokens, artifact keys |
+| `pipeline.end` | Run finishes (all capabilities done or unhandled error) — includes total cost |
+| `hitl.review_required` | `HitlReviewer` fires — run is now `waiting_hitl` |
+| `hitl.resolved` | A human approved or rejected — run resumes or fails |
+
+See [Event payload schema](../engine/event-schema.md) for the exact JSON shape of each event.
 
 ---
 
