@@ -137,16 +137,31 @@ Emitted by the platform when a run finishes (all capabilities done or error).
 
 ### `hitl.review_required`
 
-Emitted when a capability reaches a HITL checkpoint.
+Emitted by `PlatformChannel.send_for_review()` **before** the run blocks waiting for a decision. This is the trigger signal for external reviewers and integrations.
 
 ```json
 {
-  "review_id":           "rev_01xyz...",
-  "reviewed_capability": "HitlReviewer",
-  "run_id":              "run_01abc...",
-  "thread_id":           "default"
+  "review_id":            "rev_01xyz...",
+  "agent_name":           "BusinessAnalystAgent",
+  "options":              ["approve", "edit", "reject"],
+  "artifact":             { "...": "serialized artifact" },
+  "review_type":          "approval",
+  "hitl_channel":         "slack",
+  "feedback_schema_json": "{\"type\":\"object\",\"properties\":{...}}",
+  "run_id":               "run_01abc...",
+  "thread_id":            "default"
 }
 ```
+
+| Field | Type | Notes |
+|---|---|---|
+| `review_id` | string | UUID — use this to resolve the review via `POST /reviews/{id}` |
+| `agent_name` | string | Agent that triggered the review |
+| `options` | string[] | Allowed decisions (default: `["approve","edit","reject"]`) |
+| `artifact` | object or array | Serialized agent output awaiting review |
+| `review_type` | string | `"approval"` or `"structured_list"` |
+| `hitl_channel` | string | Routing hint: `"default"`, `"slack"`, or custom — matches `Agent.hitl_channel` |
+| `feedback_schema_json` | string or null | JSON Schema for structured feedback; null if agent has no `feedback_schema` |
 
 ---
 
@@ -224,4 +239,31 @@ WHERE event_type = 'agent.end'
 GROUP BY run_id
 ORDER BY total_cost_usd DESC
 LIMIT 20;
+```
+
+---
+
+## `agent_event` table
+
+Each `agent.end` event is also persisted as a row in the `agent_event` table for fast aggregation without JSON parsing. Prefer this table for cost and performance queries over the raw `event` table.
+
+| Column | Type | Notes |
+|---|---|---|
+| `run_id` | string | References `run.run_id` |
+| `agent_name` | string | Agent class name |
+| `duration_s` | float | Execution time in seconds |
+| `tokens_in` | int | Input tokens |
+| `tokens_out` | int | Output tokens |
+| `cost_usd` | float | Cost attributed to this agent invocation |
+| `produced_keys` | string | JSON-encoded `list[str]` of artifact keys produced |
+| `recorded_at` | datetime | UTC timestamp when the row was inserted |
+
+Access via the API: `GET /runs/{run_id}/agents`
+
+```sql
+-- Cost breakdown by agent across all runs
+SELECT agent_name, SUM(cost_usd) AS total_cost, SUM(tokens_in + tokens_out) AS total_tokens
+FROM agent_event
+GROUP BY agent_name
+ORDER BY total_cost DESC;
 ```

@@ -51,6 +51,9 @@ List agents in a team: `GET /run/teams/{team}/agents`
 | `model_overrides` | object | Per-agent model overrides — see [Model configuration](model-config.md) |
 | `client_label` | string | Cost-center / client tag for spend breakdown |
 | `write_back` | bool | Push generated artifacts to repo as a PR after run |
+| `dry_run` | bool | Suppress write-back and sandbox side effects; LLMs still run normally |
+| `org_context` | object | Pre-populate `ProjectKB` before the run — keys: `decisions`, `tech_stack`, `dependencies` |
+| `replay_run_id` | string | Inject artifacts from a past run as context for BA and PM agents (requires ChromaMemory) |
 
 ### Run statuses
 
@@ -70,11 +73,56 @@ GET /runs/{run_id}
 # Get all events (stored)
 GET /runs/{run_id}/events
 
+# Per-agent cost and token breakdown
+GET /runs/{run_id}/agents
+
+# ComparisonLLM results (only available when multi-model comparison was used)
+GET /runs/{run_id}/comparison
+
 # Stream events live (WebSocket — all runs)
 wss://antcrew.org/ws/events
 
 # Download final artifacts
 GET /runs/{run_id}/artifacts.zip
+```
+
+#### `GET /runs/{run_id}/agents` response
+
+Returns one entry per agent invocation captured from the `agent.end` event. Returns an empty list while the run is still in progress.
+
+```json
+{
+  "run_id": "abc123",
+  "agents": [
+    {
+      "agent_name": "BusinessAnalystAgent",
+      "duration_s": 4.21,
+      "tokens_in": 1842,
+      "tokens_out": 512,
+      "cost_usd": 0.000641,
+      "produced_keys": ["prd"],
+      "recorded_at": "2026-08-13T10:00:01Z"
+    }
+  ]
+}
+```
+
+#### `GET /runs/{run_id}/comparison` response
+
+Only available when the run used a `ComparisonLLM` (multi-model comparison). Returns 404 with `"No comparison data"` otherwise.
+
+```json
+{
+  "run_id": "abc123",
+  "comparison_log": [
+    {
+      "model": "claude:claude-sonnet-5",
+      "output": "...",
+      "latency_s": 3.1,
+      "cost_usd": 0.0012
+    }
+  ]
+}
 ```
 
 ### Re-run
