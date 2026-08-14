@@ -77,6 +77,7 @@ nav:
     - "LiteLLM (100+ providers)": engine/litellm.md
     - "MCP tools": engine/mcp-tools.md
     - "EvalSuite — regression testing": engine/eval-suite.md
+    - "Governance & provenance": engine/governance.md
     - "TraceLog & Replay": engine/tracelog.md
     - "Event payload schema": engine/event-schema.md
     - "Custom capabilities": engine/custom-agents.md

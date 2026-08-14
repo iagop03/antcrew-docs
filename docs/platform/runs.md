@@ -172,6 +172,99 @@ If a workspace has a GitHub repo configured, the ticket detail view shows linked
 
 ---
 
+## Real-time event stream (SSE)
+
+`GET /runs/{run_id}/stream` streams run events as [Server-Sent Events](https://developer.mozilla.org/en-US/docs/Web/API/Server-sent_events) while a run is active, and replays missed events automatically on reconnect.
+
+### Connecting
+
+=== "curl"
+
+    ```bash
+    curl -N \
+      -H "X-Api-Key: acw_..." \
+      "https://antcrew.org/runs/abc123/stream"
+    ```
+
+=== "JavaScript"
+
+    ```js
+    const es = new EventSource(
+      "https://antcrew.org/runs/abc123/stream",
+      { headers: { "X-Api-Key": "acw_..." } }
+    );
+
+    es.addEventListener("agent.start", e => {
+      const data = JSON.parse(e.data);
+      console.log("Agent started:", data.payload.agent_name);
+    });
+
+    es.addEventListener("run.end", e => {
+      const { status } = JSON.parse(e.data);
+      console.log("Run finished:", status);
+      es.close();
+    });
+    ```
+
+=== "Python"
+
+    ```python
+    import httpx
+
+    with httpx.stream(
+        "GET",
+        "https://antcrew.org/runs/abc123/stream",
+        headers={"X-Api-Key": "acw_..."},
+    ) as r:
+        for line in r.iter_lines():
+            print(line)
+    ```
+
+### Event format
+
+Each event is a standard SSE message:
+
+```
+id: 42
+event: agent.start
+data: {"run_id": "abc123", "event_type": "agent.start", "timestamp": 1754000000.0, "thread_id": "default", "payload": {"agent_name": "pm"}}
+
+id: 43
+event: agent.end
+data: {"run_id": "abc123", "event_type": "agent.end", "timestamp": 1754000030.5, "thread_id": "default", "payload": {"agent_name": "pm", "cost_usd": 0.0021}}
+```
+
+The final message is always a `run.end` event:
+
+```
+event: run.end
+data: {"run_id": "abc123", "status": "success"}
+```
+
+### Replay on reconnect
+
+The `id:` field on each SSE message is the database row primary key. When the client reconnects, the browser (or `EventSource` client) automatically sends the `Last-Event-ID` header with the last received ID. The server replays all events from that point, so no events are lost:
+
+```
+GET /runs/abc123/stream
+Last-Event-ID: 42         ← server sends events 43, 44, 45… then resumes live
+```
+
+This is handled automatically by the browser `EventSource` API. For custom clients, send the header manually:
+
+```bash
+curl -N \
+  -H "X-Api-Key: acw_..." \
+  -H "Last-Event-ID: 42" \
+  "https://antcrew.org/runs/abc123/stream"
+```
+
+### Completed runs
+
+For runs that have already finished, the stream flushes all events from the database and then sends `run.end` immediately — no polling.
+
+---
+
 ## Run templates
 
 Templates save a run configuration (team, request, cost cap, repo URL) for quick reuse.

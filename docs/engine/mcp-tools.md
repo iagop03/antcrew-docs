@@ -131,3 +131,69 @@ if not result.ok:
 else:
     print(result.output)  # tool output as text
 ```
+
+---
+
+## Namespacing tools
+
+When an agent uses tools from multiple MCP servers, namespacing prevents name collisions and makes the tool schema readable:
+
+```python
+from antcrew.tools.mcp import MCPToolset
+
+# Tools appear to the LLM as "data/fetch_price", "data/list_symbols", etc.
+data_tools = MCPToolset.from_server("http://data-svc:8080",   namespace="data")
+
+# Tools appear as "exec/run_backtest", "exec/cancel_job", etc.
+exec_tools = MCPToolset.from_server("http://exec-svc:8081",   namespace="exec")
+```
+
+The namespace prefix is applied to the tool name shown in LLM schemas. The underlying MCP call still uses the original (unprefixed) tool name, so the server needs no changes.
+
+You can also apply a namespace to a single `MCPTool`:
+
+```python
+search = MCPTool(
+    server_url="http://search-svc:8082",
+    tool_name="web_search",
+    description="Search the web.",
+    namespace="search",
+)
+# search.name == "search/web_search"
+```
+
+---
+
+## MCPRegistry — managing multiple servers
+
+`MCPRegistry` groups toolsets by namespace and provides a clean interface for agents that consume tools from many servers:
+
+```python
+from antcrew.tools.mcp import MCPRegistry, MCPToolset
+
+registry = (
+    MCPRegistry()
+    .register(MCPToolset.from_server("http://data-svc:8080",   namespace="data"))
+    .register(MCPToolset.from_server("http://exec-svc:8081",   namespace="exec"))
+    .register(MCPToolset.from_server("http://search-svc:8082", namespace="search"))
+)
+
+print(registry)
+# MCPRegistry('data'(4), 'exec'(3), 'search'(2))
+
+# Pass all tools to an agent
+agent = ResearcherAgent(llm=llm, tools=registry.all_tools())
+
+# Or pass only tools from one namespace
+analyst = DataAnalystAgent(llm=llm, tools=registry.ns("data"))
+```
+
+### MCPRegistry API
+
+| Method | Returns | Description |
+|---|---|---|
+| `.register(toolset, namespace="")` | `MCPRegistry` | Add a toolset; chainable |
+| `.ns(namespace)` | `list[MCPTool]` | Tools from one namespace |
+| `.all_tools()` | `list[MCPTool]` | All tools across all namespaces |
+| `.namespaces()` | `list[str]` | Registered namespace keys |
+| `len(registry)` | `int` | Total tool count |

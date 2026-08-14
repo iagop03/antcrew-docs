@@ -188,3 +188,88 @@ case = EvalCase("Build RBAC", tags=["auth", "security"])
 - `suite.regression_check(a, b)` → compare + threshold filter
 
 Use `EvalRunner` directly when you want fine-grained control over a single run. Use `EvalSuite` when you want versioned baselines and repeatable regression checks.
+
+---
+
+## EvalFeedbackAgent — LLM-powered improvement suggestions
+
+After an eval run, `EvalFeedbackAgent` reads the reports and uses an LLM to produce actionable improvement suggestions per agent:
+
+```python
+from antcrew.eval import EvalSuite, EvalFeedbackAgent
+from antcrew.models.anthropic_model import AnthropicModel
+
+team    = DevTeam(model=AnthropicModel())
+suite   = EvalSuite.from_requests("sprint-1", requests)
+reports = suite.run(team)
+
+# Option A: via the suite shorthand
+plan = suite.feedback(reports, llm=AnthropicModel())
+
+# Option B: directly
+agent = EvalFeedbackAgent(llm=AnthropicModel())
+plan  = agent.analyse(reports)
+
+print(plan.priority_action)
+# → "PMAgent's ticket quality is the main bottleneck — add an explicit
+#    acceptance-criteria format requirement to the system prompt."
+
+for item in plan.agents:
+    print(f"\n{item.agent} (score {item.current_score:.2f})")
+    print(f"  weak metrics: {', '.join(item.weak_metrics)}")
+    for s in item.suggestions:
+        print(f"  • {s}")
+```
+
+```
+pm (score 0.54)
+  weak metrics: ticket_quality, acceptance_criteria
+  • Add an explicit acceptance-criteria template to the PM system prompt.
+  • Require the PM to output at least 3 tickets per feature.
+
+backend_dev (score 0.71)
+  weak metrics: test_coverage
+  • Instruct the backend agent to always include unit tests alongside implementation.
+```
+
+### ImprovementPlan schema
+
+| Field | Type | Description |
+|---|---|---|
+| `summary` | `str` | One-paragraph overview of the main issues |
+| `agents` | `list[AgentImprovement]` | Per-agent breakdown |
+| `priority_action` | `str` | Single most impactful change to make first |
+
+**`AgentImprovement`**:
+
+| Field | Type | Description |
+|---|---|---|
+| `agent` | `str` | Agent name |
+| `current_score` | `float` | Mean score across all cases |
+| `weak_metrics` | `list[str]` | Metric names below average |
+| `suggestions` | `list[str]` | Concrete, actionable suggestions |
+
+### In CI — automated prompt improvement loop
+
+```yaml
+# .github/workflows/eval-feedback.yml
+- name: Eval + generate improvement plan
+  run: |
+    python - <<'EOF'
+    from antcrew.eval import EvalSuite
+    from antcrew import DevTeam
+    from antcrew.models.anthropic_model import AnthropicModel
+
+    team    = DevTeam(model=AnthropicModel())
+    suite   = EvalSuite.load("suites/core.json")
+    reports = suite.run(team)
+
+    ok, diff = suite.regression_check(
+        EvalSuite.load_reports("baselines/core.json"), reports
+    )
+    if not ok:
+        plan = suite.feedback(reports, llm=AnthropicModel())
+        print("=== Regression detected ===")
+        print(plan.priority_action)
+        raise SystemExit(1)
+    EOF
