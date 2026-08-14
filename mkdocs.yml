@@ -74,6 +74,9 @@ nav:
     - Overview: engine/index.md
     - "Typed artifacts": engine/contracts.md
     - "LLM providers": engine/providers.md
+    - "LiteLLM (100+ providers)": engine/litellm.md
+    - "MCP tools": engine/mcp-tools.md
+    - "EvalSuite — regression testing": engine/eval-suite.md
     - "TraceLog & Replay": engine/tracelog.md
     - "Event payload schema": engine/event-schema.md
     - "Custom capabilities": engine/custom-agents.md
