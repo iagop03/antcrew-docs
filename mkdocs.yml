@@ -72,6 +72,7 @@ nav:
     - Security: architecture/security.md
   - Engine SDK:
     - Overview: engine/index.md
+    - "Quick agents": engine/quick-agent.md
     - "Typed artifacts": engine/contracts.md
     - "LLM providers": engine/providers.md
     - "LiteLLM (100+ providers)": engine/litellm.md
@@ -98,6 +99,9 @@ nav:
     - "PM integrations": platform/pm-integrations.md
     - "Team history & regression": platform/team-history.md
     - "Cost estimation": platform/cost-estimation.md
+    - "Field encryption": platform/encryption.md
+    - "Agent memory": platform/run-memory.md
+    - "A2A Protocol": platform/a2a.md
     - "Data retention": platform/data-retention.md
   - Proxy:
     - Overview: proxy/index.md
