@@ -95,6 +95,9 @@ nav:
     - "Eval health & trends": platform/eval-health.md
     - "Client portal & margin": platform/client-portal.md
     - "Run attestation": platform/attestation.md
+    - "PM integrations": platform/pm-integrations.md
+    - "Team history & regression": platform/team-history.md
+    - "Cost estimation": platform/cost-estimation.md
     - "Data retention": platform/data-retention.md
   - Proxy:
     - Overview: proxy/index.md
