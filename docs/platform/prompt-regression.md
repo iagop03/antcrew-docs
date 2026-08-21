@@ -38,7 +38,7 @@ antcrew trace ~/.antcrew/trace.db
 ### File-based prompt test
 
 ```bash
-antcrew test ~/.antcrew/trace.db \
+antcrew regtest ~/.antcrew/trace.db \
   --run <run-id> \
   --agent BA \
   --prompt v2_ba_prompt.txt
@@ -47,7 +47,7 @@ antcrew test ~/.antcrew/trace.db \
 ### Inline prompt test
 
 ```bash
-antcrew test ~/.antcrew/trace.db \
+antcrew regtest ~/.antcrew/trace.db \
   --run <run-id> \
   --agent BA \
   --prompt-text "You are a Business Analyst. Be extremely concise."
@@ -56,7 +56,7 @@ antcrew test ~/.antcrew/trace.db \
 ### Output
 
 ```
-antcrew test  run=4c3fa8b2…  agent=BA  threshold=20%
+antcrew regtest  run=4c3fa8b2…  agent=BA  threshold=20%
 
  Agent          Mutated  Diff %  Match  Cost
  ─────────────────────────────────────────────
@@ -72,7 +72,7 @@ Exit code `0` on pass, `1` on fail.
 ### JSON output for scripting
 
 ```bash
-antcrew test trace.db --run $RUN_ID --agent BA --prompt v2.txt --json
+antcrew regtest trace.db --run $RUN_ID --agent BA --prompt v2.txt --json
 ```
 
 ```json
@@ -89,28 +89,86 @@ antcrew test trace.db --run $RUN_ID --agent BA --prompt v2.txt --json
 
 ## CI/CD integration
 
-### GitHub Actions
+### GitHub Actions — full reusable workflow
 
-Add to `.github/workflows/ci.yml`:
+Save as `.github/workflows/prompt-regression.yml` in your repository:
 
 ```yaml
-- name: Prompt regression test
-  env:
-    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-  run: |
-    antcrew test trace.db \
-      --run ${{ vars.BASELINE_RUN_ID }} \
-      --agent BA \
-      --prompt prompts/ba_v2.txt \
-      --threshold 0.15
+name: Prompt regression tests
+
+on:
+  pull_request:
+    paths:
+      - 'prompts/**'
+      - '**.yaml'
+      - '**.yml'
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install antcrew
+        run: pip install antcrew
+
+      - name: Download baseline trace
+        env:
+          ANTCREW_API_KEY: ${{ secrets.ANTCREW_API_KEY }}
+        run: |
+          # Download the TraceLog from your platform instance
+          curl -fsSL \
+            -H "X-Api-Key: $ANTCREW_API_KEY" \
+            "https://app.antcrew.io/runs/${{ vars.BASELINE_RUN_ID }}/tracelog" \
+            -o baseline.db
+
+      - name: Run prompt regression — BA agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          antcrew regtest baseline.db \
+            --run "${{ vars.BASELINE_RUN_ID }}" \
+            --agent BA \
+            --prompt prompts/ba.txt \
+            --threshold 0.15
+
+      - name: Run prompt regression — PM agent
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          antcrew regtest baseline.db \
+            --run "${{ vars.BASELINE_RUN_ID }}" \
+            --agent PM \
+            --prompt prompts/pm.txt \
+            --threshold 0.20
+
+      - name: Governance hash gate
+        run: |
+          antcrew verify-hash team.yaml \
+            --expected "${{ vars.APPROVED_TEAM_HASH }}"
 ```
+
+**What to set in your repo:**
+
+| Secret / Variable | Value |
+|---|---|
+| `secrets.ANTCREW_API_KEY` | API key for the platform instance |
+| `secrets.ANTHROPIC_API_KEY` | Provider API key for replaying calls |
+| `vars.BASELINE_RUN_ID` | Run ID of the approved baseline |
+| `vars.APPROVED_TEAM_HASH` | Team hash from `antcrew verify-hash team.yaml` |
 
 ### Recommended workflow
 
-1. Record a **baseline run** after each major prompt release and store the run ID in CI variables
-2. On every PR that touches a prompt file, run `antcrew test` against the baseline
-3. Set threshold per agent based on how sensitive it is (BA: 15%, code generators: 25%)
-4. Block merge if any agent exceeds its threshold
+1. Record a **baseline run** after each major prompt release and store the run ID in CI variables (`vars.BASELINE_RUN_ID`)
+2. Run `antcrew verify-hash team.yaml` locally, copy the `team_hash`, and store it in `vars.APPROVED_TEAM_HASH`
+3. On every PR that touches a prompt file or team YAML, both gates run automatically
+4. Set threshold per agent based on sensitivity (BA: 15%, code generators: 25%)
+5. Block merge if any agent exceeds its threshold or the governance hash has changed
 
 ## Threshold guidelines
 

@@ -82,15 +82,21 @@ jq -r '.agents[] | "\(.agent_name): \(.governance_hash)"' approved-config.json
 
 **2. On every production deploy: compare hashes**
 
-```bash
-# Get current run governance
-curl -H "X-Api-Key: $KEY" \
-  https://app.antcrew.io/runs/$PROD_RUN_ID/governance \
-  | jq -r '.team_hash'
+Use the CLI for local config verification before deploying:
 
-# Compare against approved hash
+```bash
+antcrew verify-hash team.yaml --expected sha256:a1b2c3d4e5f6789a
+# exit 0 → OK to deploy
+# exit 1 → config drifted since review
+```
+
+Or verify via the platform API after a run completes:
+
+```bash
 APPROVED="sha256:a1b2c3d4e5f6789a"
-CURRENT=$(curl -s ... | jq -r '.team_hash')
+CURRENT=$(curl -s -H "X-Api-Key: $KEY" \
+  https://app.antcrew.io/runs/$PROD_RUN_ID/governance \
+  | jq -r '.team_hash')
 
 if [ "$CURRENT" != "$APPROVED" ]; then
   echo "ERROR: Team configuration changed since security review!"
@@ -101,11 +107,42 @@ echo "OK: Team configuration matches approved hash."
 
 **3. In CI/CD: gate on hash equality**
 
-Add a step that compares the current team hash against the hash stored in your security registry. Fail the deploy if they don't match.
+Add a step in GitHub Actions (or any CI) that runs `antcrew verify-hash team.yaml --expected <approved_hash>`. Fail the deploy if they don't match. See [Prompt Regression Testing](./prompt-regression.md#github-actions--full-reusable-workflow) for a complete workflow template that combines both gates.
 
 ## Computing hashes locally
 
-You can compute the governance hash for any agent without running the pipeline:
+### Via CLI (recommended)
+
+```bash
+antcrew verify-hash team.yaml
+```
+
+Output:
+
+```
+  #  Agent        Stage           Governance Hash
+  ─────────────────────────────────────────────────────
+  1  BA           analysis        a1b2c3d4e5f67890
+  2  PM           planning        b2c3d4e5f6789012
+  3  BackendDev   implementation  c3d4e5f678901234
+
+Team hash: sha256:9f8e7d6c5b4a3210
+3 agents · team.yaml
+
+Tip: pass --expected <hash> to gate a deploy on hash equality.
+```
+
+Uses `SimulatedLLM` internally — no API calls, no credentials required.
+
+**Gate a deploy on hash equality:**
+
+```bash
+antcrew verify-hash team.yaml --expected sha256:9f8e7d6c5b4a3210
+# exit 0 → configuration matches approved baseline
+# exit 1 → configuration has changed since approval
+```
+
+### Via Python SDK
 
 ```python
 from antcrew import BaseAgent
