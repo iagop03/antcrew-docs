@@ -1,10 +1,12 @@
 # Engine SDK
 
-`antcrew-engine` is the autonomous execution engine that runs inside your agent code. It drives an `EngineLoop` over a set of capabilities until a goal is satisfied — no fixed pipeline, no manual step sequencing.
+The engine is the autonomous execution loop built into antcrew. It drives an `EngineLoop` over a set of capabilities until a goal is satisfied — no fixed pipeline, no manual step sequencing.
 
 ```bash
-pip install antcrew-engine
+pip install antcrew   # antcrew_engine is bundled — no separate install needed
 ```
+
+> **Note:** `antcrew-engine` was a separate package until antcrew v0.35.0. It is now merged into antcrew. All imports (`from antcrew_engine import EngineLoop`) continue to work unchanged.
 
 ---
 

@@ -1,6 +1,6 @@
 ﻿# Providers
 
-antcrew-engine supports 16 LLM providers through a single string prefix. The full list is also available at runtime via `GET /engine/supported-providers`.
+antcrew (bundled engine) supports 16 LLM providers through a single string prefix. The full list is also available at runtime via `GET /engine/supported-providers`.
 
 ## Supported providers
 

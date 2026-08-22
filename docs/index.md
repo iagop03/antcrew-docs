@@ -113,7 +113,7 @@ flowchart LR
 pip install antcrew
 ```
 
-It ships with [antcrew-engine](https://github.com/iagop03/antcrew-engine) built in — the autonomous `EngineLoop` that powers named-role teams. You don't need to install or import `antcrew-engine` directly.
+It ships with `antcrew_engine` built in — the autonomous `EngineLoop` that powers named-role teams. You don't need to install anything extra.
 
 **antcrew-platform** is an optional cloud backend for teams that need multi-workspace runs, remote HITL, and a shared dashboard. [→ Platform docs](platform/index.md)
 

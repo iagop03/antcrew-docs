@@ -1,43 +1,26 @@
 ﻿# Components & architecture
 
-antcrew is made of four independent pieces. Each can run without the others, but together they give you end-to-end observability and control over your AI pipelines.
+antcrew is made of three independent pieces. Each can run without the others, but together they give you end-to-end observability and control over your AI pipelines.
 
 ---
 
-## antcrew — the agent framework
+## antcrew — the agent framework + engine
 
-`antcrew` is the Python package your team builds and ships agent logic with.
+`antcrew` is the Python package your team builds and ships agent logic with. Since v0.35.0, the `antcrew_engine` capability loop is **bundled inside** the antcrew wheel — one install gets everything.
 
 **What it does:**
 
 - Provides ready-made agent roles — PM, developer, reviewer, QA — built on LangGraph
+- Runs capabilities (Architect, TaskPlanner, CodeGenerator, TestRunner…) through an `EngineLoop` that selects and dispatches work until the goal is satisfied
 - Ships a CLI (`antcrew run …`) to execute pipelines locally or in CI
+- Writes every token, capability result, and intermediate artifact to an **EventLog** and SQLite **TraceLog**
+- Ships a `HitlReviewer` capability that pauses execution and waits for a human to approve before continuing
 - Integrates with Slack, Telegram, and other notification channels
-- Depends on `antcrew-engine` for all LLM calls, tracing, and HITL logic
 
 **What it is not:** a server or a UI. It's a library you install in your project.
 
-```
-pip install antcrew
-```
-
----
-
-## antcrew-engine — the core SDK
-
-`antcrew-engine` is the low-level Python library that the framework builds on. You can also use it directly without the full agent framework.
-
-**What it does:**
-
-- Runs capabilities (Architect, TaskPlanner, CodeGenerator, TestRunner…) through an `EngineLoop` that selects and dispatches work until the goal is satisfied
-- Runs every LLM call through a configurable provider (`openai:gpt-4o`, `anthropic:claude-opus-5`, `simulated:echo` for tests…) via `build_llm()`
-- Writes every token, capability result, and intermediate artifact to an **EventLog** — a structured, append-only record of the full run
-- Ships a `HitlReviewer` capability that pauses execution and waits for a human to approve before continuing
-
-**What it is not:** a server, a database, or a UI. It's a library.
-
-```
-pip install antcrew-engine
+```bash
+pip install antcrew   # antcrew_engine bundled — no separate install needed
 ```
 
 ---
@@ -113,7 +96,6 @@ sequenceDiagram
 
 | Component | Role | Where it runs |
 |---|---|---|
-| `antcrew` | Agent framework + CLI | Your codebase |
-| `antcrew-engine` | EngineLoop, capabilities, EventLog, HITL | Your codebase |
+| `antcrew` | Agent framework + EngineLoop + CLI (antcrew_engine bundled) | Your codebase |
 | `antcrew-platform` | Dashboard, storage, HITL reviews | antcrew.org (managed cloud) |
 | `keybridge` | LLM routing, BYOK key injection | antcrew.org or your own infra |
