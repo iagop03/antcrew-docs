@@ -1,6 +1,6 @@
 site_name: antcrew docs
 site_url: https://docs.antcrew.org
-site_description: Documentation for antcrew — the AI agent orchestration platform for teams
+site_description: antcrew — multi-agent framework for Python. Typed outputs, full trace, works offline.
 docs_dir: docs
 
 theme:
@@ -64,13 +64,10 @@ markdown_extensions:
 
 nav:
   - Home: index.md
-  - How it works:
-    - "Components & architecture": architecture/overview.md
-    - "Architecture decisions": architecture/decisions.md
+  - Get Started:
+    - "5-minute quick start": guides/quickstart.md
     - "A full team in action": guides/fullstack-team.md
-    - "Run lifecycle & events": architecture/data-flow.md
-    - Security: architecture/security.md
-  - Engine SDK:
+  - SDK Reference:
     - Overview: engine/index.md
     - "Quick agents": engine/quick-agent.md
     - "Typed artifacts": engine/contracts.md
@@ -107,6 +104,11 @@ nav:
     - Overview: proxy/index.md
     - Configuration: proxy/configuration.md
     - "Provider routing": proxy/routing.md
+  - Architecture:
+    - "Components & architecture": architecture/overview.md
+    - "Architecture decisions": architecture/decisions.md
+    - "Run lifecycle & events": architecture/data-flow.md
+    - Security: architecture/security.md
   - Releases:
     - "Week of 11 Aug 2026": releases/2026-w33.md
     - "Week of 4 Aug 2026": releases/2026-w32.md

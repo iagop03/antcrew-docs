@@ -1,92 +1,120 @@
 # antcrew
 
-**antcrew** gives teams a shared control plane for AI agent workflows — with typed contracts that guarantee structured output, a full replay log of every decision, and human-in-the-loop gates that stop the automation before it does something it shouldn't.
+**Multi-agent framework for Python. Typed outputs. Full trace. Works offline.**
+
+One command to your first agent team — no cloud account, no API key required:
+
+```bash
+pip install antcrew
+antcrew run "Build a FastAPI auth service" --model ollama:llama3
+```
+
+Or three lines of Python:
+
+```python
+from antcrew import QuickStart
+
+result = QuickStart.dev().run("Build a FastAPI auth service")
+print(result.state["prd"].title)       # typed PRD artifact
+print(result.state["code_artifacts"])  # typed code files
+```
 
 ---
 
-## Four components, one system
+## What makes antcrew different
 
-<div class="grid cards" markdown>
+Every output is a **typed artifact** (Pydantic class, not a dict) and every decision is written to a **local TraceLog** you can replay. Both work offline, for free.
 
--   **antcrew** · Agent framework
-
-    ---
-
-    The Python package your team ships agent logic with. Built on LangGraph, it provides ready-made agent roles (PM, developer, reviewer…), a CLI to run pipelines locally, and integrations for Slack, Telegram, and more.
-
-    ```bash
-    pip install antcrew
-    ```
-
-    [:octicons-arrow-right-24: Engine SDK](engine/index.md)
-
--   **antcrew-engine** · Core SDK
-
-    ---
-
-    The autonomous execution engine powering the framework. An `EngineLoop` drives capabilities (Architect, CodeGenerator, TestRunner…) toward a goal, writes every event to a structured log, and raises HITL checkpoints that the platform surfaces for human review.
-
-    ```bash
-    pip install antcrew-engine
-    ```
-
-    [:octicons-arrow-right-24: Engine SDK](engine/index.md)
-
--   **antcrew-platform** · Cloud control plane
-
-    ---
-
-    The managed web application at [antcrew.org](https://antcrew.org). Receives runs from the engine, stores the full TraceLog, shows the live dashboard, and surfaces HITL review queues to your team.
-
-    [:octicons-arrow-right-24: Platform](platform/index.md)
-
--   **antcrew-proxy** · LLM gateway
-
-    ---
-
-    A reverse proxy that routes model calls to any provider — OpenAI, Anthropic, Groq, Gemini, Moonshot, DeepSeek, Mistral, xAI, Ollama, and more — with BYOK key management and per-workspace routing rules.
-
-    [:octicons-arrow-right-24: Proxy](proxy/index.md)
-
-</div>
+| | antcrew | CrewAI | MetaGPT |
+|---|---|---|---|
+| Typed output contracts | ✓ Pydantic artifacts | ✗ dict | partial |
+| Trace & replay any run | ✓ SQLite TraceLog | ✗ | ✓ |
+| Works 100% offline | ✓ Ollama natively | partial | partial |
+| Lines to first agent | **3** | ~15 | ~20 |
+| Governance hash per agent | ✓ SHA-256 | ✗ | ✗ |
+| CLI (commands) | ✓ 29 commands | limited | basic |
 
 ---
 
-## How they connect
+## How the pieces fit together
 
 ```mermaid
 flowchart LR
-    subgraph code["Your code"]
-        AC["antcrew\nAgent framework + CLI"]
-        ENG["antcrew-engine\nEngineLoop · Capabilities · EventLog"]
+    subgraph local["Your machine"]
+        AC["antcrew SDK\npip install antcrew"]
+        OL["Ollama / LM Studio\nlocal models"]
     end
 
-    subgraph infra["antcrew infrastructure"]
-        PX["antcrew-proxy\nLLM routing · BYOK"]
-        AP["antcrew-platform\nRuns · Tickets · TraceLog · HITL"]
+    subgraph cloud_opt["Optional — cloud"]
+        AP["antcrew-platform\nRuns · HITL · Dashboard"]
+        PX["antcrew-proxy\nBYOK key gateway"]
+        CL["Cloud LLMs\nAnthropic · OpenAI · Groq"]
     end
 
-    subgraph providers["LLM providers"]
-        L1["OpenAI"]
-        L2["Anthropic"]
-        L3["Groq · Gemini · …"]
-    end
-
-    PM["👤 Team"] -->|"submit prompt"| AC
-    AC --> ENG
-    ENG -->|"model calls"| PX
-    PX --> L1 & L2 & L3
-    ENG -->|"runs · events\nHITL checkpoints"| AP
-    REV["👤 Reviewer"] -->|"approve / reject"| AP
-    AP -->|"resume signal"| ENG
+    DEV["👤 You"] -->|"antcrew run"| AC
+    AC --> OL
+    AC -.->|"if you deploy platform"| AP
+    AP -.->|"with proxy mode"| PX
+    PX -.-> CL
+    AC -.-> CL
 ```
 
-`antcrew` and `antcrew-engine` live **in your code**. The platform is **managed cloud** — hosted at antcrew.org. The proxy can run anywhere: antcrew-managed or your own infra. The only coupling between them is a REST API and a model endpoint URL.
+`antcrew` runs entirely on your machine. The platform is an optional cloud layer — your pipelines work without it.
 
 ---
 
 ## Start here
 
-- **New to antcrew?** Read [A full team in action](guides/fullstack-team.md) — a complete walkthrough from prompt to shipped code.
-- **Ready to build?** Follow the [Quick start](platform/getting-started.md) to connect your first agent pipeline in minutes.
-- **Just the SDK?** Jump to [Engine SDK](engine/index.md) if you already have a platform account.
+=== "Local — no API key"
+
+    ```bash
+    pip install antcrew
+
+    # Simulated LLM — zero cost, deterministic, runs anywhere
+    antcrew run --model simulated "Build a user auth module"
+
+    # Fully local with Ollama (ollama pull llama3 first)
+    antcrew run --model ollama:llama3 "Build a user auth module"
+    ```
+
+    → [5-minute quick start](guides/quickstart.md)
+
+=== "Cloud model"
+
+    ```bash
+    pip install antcrew
+    export ANTHROPIC_API_KEY=sk-ant-...
+    antcrew run --model claude "Build a user auth module"
+    ```
+
+    → [LLM providers](engine/providers.md)
+
+=== "Team (Python)"
+
+    ```python
+    from antcrew import DevTeam
+    from antcrew.models import OllamaModel
+
+    team = DevTeam(model=OllamaModel("llama3"))
+    result = team.run("Build a user auth module")
+    print(result.state["prd"].title)
+    print(result.cost_usd)   # 0.0 with Ollama
+    ```
+
+    → [A full team in action](guides/fullstack-team.md)
+
+---
+
+## Components
+
+**antcrew** (this package) is what almost everyone needs:
+
+```bash
+pip install antcrew
+```
+
+It ships with [antcrew-engine](https://github.com/iagop03/antcrew-engine) built in — the autonomous `EngineLoop` that powers named-role teams. You don't need to install or import `antcrew-engine` directly.
+
+**antcrew-platform** is an optional cloud backend for teams that need multi-workspace runs, remote HITL, and a shared dashboard. [→ Platform docs](platform/index.md)
+
+**antcrew-proxy** is a companion to antcrew-platform for teams that want their LLM API keys to stay on their own infrastructure. [→ Proxy docs](proxy/index.md)
