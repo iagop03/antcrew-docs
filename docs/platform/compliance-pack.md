@@ -8,8 +8,12 @@ The Compliance Pack is a paid add-on that transforms antcrew-platform into a com
 
 | Capability | How it works |
 |---|---|
-| **Compliance dashboard** | `GET /compliance/attestations` — paginated list of all runs with status, cost, team, and attestation link. Accessible to compliance officers without terminal access. |
+| **Compliance dashboard** | `GET /compliance/dashboard` — standalone HTML portal; compliance officers open it in a browser, enter their API key once (stored in localStorage), and browse attestations with pagination and a one-click ZIP export. No terminal required. |
+| **compliance_viewer role** | API keys created with `role=compliance_viewer` are hard-restricted to `/compliance/*` paths. They cannot call run, billing, or admin endpoints. |
+| **Paginated attestation list** | `GET /compliance/attestations` — JSON list of all runs with status, cost, team, and attestation link. |
 | **Bulk export (ZIP)** | `GET /compliance/export` — downloads a ZIP of HMAC-signed attestation JSONs for the N most recent completed runs. Submit directly to an auditor. |
+| **Self-serve checkout** | `POST /compliance/checkout` — creates a Stripe Checkout session for monthly or annual billing. Pack auto-enables after payment via webhook. |
+| **Daily email digest** | Compliance officers with an `email` set on their API key receive a daily digest of runs completed in the last 24 hours. |
 | **Pack status & pricing** | `GET /compliance/status` — returns whether the pack is active and the effective pricing for the workspace. |
 | **Admin control** | `PATCH /admin/workspaces/{id}` — admin can enable/disable the pack per workspace and set workspace-level price overrides. |
 | **Platform default pricing** | `PATCH /admin/billing-rates` — set the platform-wide default monthly/annual price for the pack. |
@@ -59,7 +63,59 @@ Default: **$49/month · $490/year** (≈ 2 months free on annual).
 
 ---
 
+## Compliance officer setup
+
+Compliance officers are non-developers who need read-only access to the audit trail. Set them up with a `compliance_viewer` API key:
+
+```bash
+# Admin creates a restricted API key for the compliance officer
+POST /api-keys
+{
+  "name": "Compliance Officer – Jane Smith",
+  "role": "compliance_viewer",
+  "email": "jane@example.com"    # enables daily digest
+}
+```
+
+The officer:
+
+1. Opens `https://your-platform.com/compliance/dashboard` in a browser.
+2. Enters the API key once — it is stored in localStorage and never sent to a third party.
+3. Browses paginated attestations and clicks **Export ZIP** to download the signed archive.
+
+`compliance_viewer` keys return `403` for every endpoint outside `/compliance/*`.
+
+---
+
+## Self-serve checkout
+
+To purchase the Compliance Pack without admin intervention:
+
+```bash
+POST /compliance/checkout
+Authorization: X-Api-Key <any non-viewer key>
+{ "billing_cycle": "monthly" }   # or "annual"
+```
+
+Response:
+
+```json
+{ "checkout_url": "https://checkout.stripe.com/..." }
+```
+
+Redirect the user to `checkout_url`. After payment, Stripe fires `checkout.session.completed` and the platform automatically sets `compliance_pack_enabled = true` for the workspace. Returns `409` if the pack is already enabled.
+
+Required env vars on the server: `STRIPE_SECRET_KEY`, `STRIPE_COMPLIANCE_PRICE_MONTHLY_ID`, `STRIPE_COMPLIANCE_PRICE_ANNUAL_ID`, `STRIPE_SUCCESS_URL`, `STRIPE_CANCEL_URL`.
+
+---
+
 ## API reference
+
+### `GET /compliance/dashboard`
+
+Returns a standalone HTML page. No pack-enabled check — always accessible so the officer can see the upgrade prompt when the pack is not yet active. Pass the API key via the browser UI (not a query parameter).
+
+---
 
 ### `GET /compliance/status`
 
