@@ -93,6 +93,7 @@ nav:
     - "Eval health & trends": platform/eval-health.md
     - "Client portal & margin": platform/client-portal.md
     - "Run attestation": platform/attestation.md
+    - "Compliance Pack": platform/compliance-pack.md
     - "PM integrations": platform/pm-integrations.md
     - "Team history & regression": platform/team-history.md
     - "Cost estimation": platform/cost-estimation.md

@@ -1,4 +1,4 @@
-# Architecture decisions
+﻿# Architecture decisions
 
 This page records the significant architectural decisions made during antcrew's development.
 It replaces the v2 architecture document (June 2026), which described a single-repo future
@@ -66,7 +66,7 @@ and why the actual choice was made.
 
 ## 2026-06 — Single-repo → four-repo split
 
-**Decision:** the ecosystem is four separate repos (`antcrew`, `antcrew-engine`, `antcrew-platform`, `antcrew-proxy`) with independent version numbers and release cadences.
+**Decision:** the ecosystem is four separate repos (`antcrew`, `antcrew-engine`, `antcrew-platform`, `keybridge`) with independent version numbers and release cadences.
 
 **Original plan:** single `antcrew` package with a sequential v0.1→v0.2→v0.3→v0.4→v1.0 roadmap.
 

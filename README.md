@@ -1,4 +1,4 @@
-# antcrew-docs
+﻿# antcrew-docs
 
 Documentation site for the [antcrew](https://antcrew.org) platform, built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/).
 
@@ -11,7 +11,7 @@ docs/
   index.md          # Home
   platform/         # antcrew-platform (API, auth, workspaces...)
   engine/           # antcrew-engine (operators, capabilities...)
-  proxy/            # antcrew-proxy (self-hosted LLM proxy)
+  proxy/            # keybridge (self-hosted LLM proxy)
   architecture/     # System design and concepts
   guides/           # End-to-end how-to guides
   releases/         # Changelog and release notes

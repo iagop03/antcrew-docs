@@ -1,4 +1,4 @@
-# antcrew
+﻿# antcrew
 
 **Multi-agent framework for Python. Typed outputs. Full trace. Works offline.**
 
@@ -47,7 +47,7 @@ flowchart LR
 
     subgraph cloud_opt["Optional — cloud"]
         AP["antcrew-platform\nRuns · HITL · Dashboard"]
-        PX["antcrew-proxy\nBYOK key gateway"]
+        PX["keybridge\nBYOK key gateway"]
         CL["Cloud LLMs\nAnthropic · OpenAI · Groq"]
     end
 
@@ -117,4 +117,4 @@ It ships with [antcrew-engine](https://github.com/iagop03/antcrew-engine) built 
 
 **antcrew-platform** is an optional cloud backend for teams that need multi-workspace runs, remote HITL, and a shared dashboard. [→ Platform docs](platform/index.md)
 
-**antcrew-proxy** is a companion to antcrew-platform for teams that want their LLM API keys to stay on their own infrastructure. [→ Proxy docs](proxy/index.md)
+**keybridge** is a companion to antcrew-platform for teams that want their LLM API keys to stay on their own infrastructure. [→ Proxy docs](proxy/index.md)

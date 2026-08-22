@@ -1,6 +1,6 @@
-# Proxy — overview
+﻿# Proxy — overview
 
-`antcrew-proxy` (v2.1.0) is an OpenAI-compatible HTTP proxy that sits between antcrew-platform and LLM providers. It handles key injection, multi-provider failover, request auditing, and metrics.
+`keybridge` (v2.1.0) is an OpenAI-compatible HTTP proxy that sits between antcrew-platform and LLM providers. It handles key injection, multi-provider failover, request auditing, and metrics.
 
 ## Why use the proxy?
 

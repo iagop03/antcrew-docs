@@ -18,7 +18,9 @@ pip install antcrew
 antcrew run --model simulated "Build a REST API for user authentication"
 ```
 
-This runs the full pipeline — BA, PM, backend dev, QA, reviewer — using a deterministic simulated model. It produces the same artifacts every time, which makes it useful for testing and CI.
+This runs the full pipeline — BA, PM, backend dev, QA, reviewer — using a **deterministic simulated model** that produces the same artifacts every time. The content is fake (no real AI), but the artifact structure is real — useful for testing pipelines and CI, not for actual development output.
+
+> No LLM is bundled with antcrew. The simulated model is a built-in test stub. For real AI output, use Option B (local Ollama) or Option C (cloud API key). If you want real AI with zero setup, use [antcrew-platform's managed tier](../platform/getting-started.md) — it provides the LLM.
 
 **Option B — Fully local with Ollama (no API key, no data leaves your machine):**
 

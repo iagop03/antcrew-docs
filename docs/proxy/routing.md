@@ -1,4 +1,4 @@
-# Provider routing
+﻿# Provider routing
 
 The proxy routes requests to the correct provider based on the **URL path prefix**. A unified endpoint (`POST /v1/chat/completions`) additionally supports automatic provider failover.
 
@@ -123,7 +123,7 @@ Local providers need no API key. Run the proxy **on the same machine** as the lo
 ```bash
 docker run -d -p 8080:8080 \
   -e PROXY_TOKEN=your-token \
-  ghcr.io/iagop03/antcrew-proxy:latest
+  ghcr.io/iagop03/keybridge:latest
 # Ollama is assumed at localhost:11434
 ```
 

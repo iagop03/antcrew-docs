@@ -1,4 +1,4 @@
-# Getting started
+﻿# Getting started
 
 ## 1. Create your account
 
@@ -132,7 +132,7 @@ Browser sessions use an `antcrew_session` cookie. API clients use `X-Api-Key`.
 |---|---|---|---|
 | **Managed** | antcrew provides the key | ×3.0 | Default — no configuration needed |
 | **BYOK** | Your own provider key | ×0.4 | Settings → Providers → add key |
-| **Proxy** | Your key, via `antcrew-proxy` | ×0.7 | Run `antcrew-proxy`; Settings → Providers → set proxy URL |
+| **Proxy** | Your key, via `keybridge` | ×0.7 | Run `keybridge`; Settings → Providers → set proxy URL |
 
 BYOK and Proxy keys are encrypted at rest and never stored in plaintext.
 

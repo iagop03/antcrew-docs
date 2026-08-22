@@ -1,4 +1,4 @@
-# Components & architecture
+﻿# Components & architecture
 
 antcrew is made of four independent pieces. Each can run without the others, but together they give you end-to-end observability and control over your AI pipelines.
 
@@ -61,9 +61,9 @@ pip install antcrew-engine
 
 ---
 
-## antcrew-proxy — the LLM gateway
+## keybridge — the LLM gateway
 
-`antcrew-proxy` is an OpenAI-compatible HTTP proxy.
+`keybridge` is an OpenAI-compatible HTTP proxy.
 
 **What it does:**
 
@@ -82,7 +82,7 @@ pip install antcrew-engine
 sequenceDiagram
     autonumber
     participant Code as Your agent code<br/>(antcrew / antcrew-engine)
-    participant Proxy as antcrew-proxy
+    participant Proxy as keybridge
     participant LLM as LLM provider
     participant Platform as antcrew-platform
     participant Human as Human reviewer
@@ -116,4 +116,4 @@ sequenceDiagram
 | `antcrew` | Agent framework + CLI | Your codebase |
 | `antcrew-engine` | EngineLoop, capabilities, EventLog, HITL | Your codebase |
 | `antcrew-platform` | Dashboard, storage, HITL reviews | antcrew.org (managed cloud) |
-| `antcrew-proxy` | LLM routing, BYOK key injection | antcrew.org or your own infra |
+| `keybridge` | LLM routing, BYOK key injection | antcrew.org or your own infra |

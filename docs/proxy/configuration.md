@@ -1,4 +1,4 @@
-# Configuration
+﻿# Configuration
 
 ## Environment variables
 
@@ -111,7 +111,7 @@ The `GET /metrics` endpoint returns live in-memory stats: request count, token t
 ```yaml
 services:
   proxy:
-    image: ghcr.io/iagop03/antcrew-proxy:latest
+    image: ghcr.io/iagop03/keybridge:latest
     ports:
       - "8080:8080"
     environment:

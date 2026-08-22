@@ -1,4 +1,4 @@
-# Providers
+﻿# Providers
 
 antcrew-engine supports 16 LLM providers through a single string prefix. The full list is also available at runtime via `GET /engine/supported-providers`.
 
@@ -54,7 +54,7 @@ Once stored, any run in the workspace can use `groq:*` models without setting `G
 
 ## BYOK via the proxy
 
-When using antcrew-proxy, your keys are stored in the proxy and injected at request time. Application code never handles credentials directly:
+When using keybridge, your keys are stored in the proxy and injected at request time. Application code never handles credentials directly:
 
 ```python
 llm = build_llm("openai:gpt-4o", base_url="https://proxy.antcrew.org")
