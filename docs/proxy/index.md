@@ -1,61 +1,72 @@
-﻿# Proxy — overview
+# keybridge — proxy overview
 
-`keybridge` (v2.1.0) is an OpenAI-compatible HTTP proxy that sits between antcrew-platform and LLM providers. It handles key injection, multi-provider failover, request auditing, and metrics.
+keybridge is a self-hosted LLM key proxy. It sits between your AI workloads and LLM providers so your API keys never leave your infrastructure.
 
-## Why use the proxy?
+```
+your agent / platform  →  keybridge (yours)  →  api.anthropic.com
+        ↑                       ↑                  api.openai.com
+sends a UUID token         holds your real          api.groq.com
+  (not the real key)       provider keys              …
+```
 
-- **BYOK without key exposure** — provider keys live in your proxy, not in the platform or application code
+It works with any framework that makes HTTP requests to LLMs: **CrewAI, LangGraph, AutoGen, OpenAI Agents SDK, antcrew**, or a plain `openai` client.
+
+## Why use keybridge?
+
+- **Zero key exposure** — provider keys live in your keybridge container, not in your application code or any cloud platform
 - **Drop-in replacement** — change `base_url` only; no other code changes required
 - **15 providers** — Anthropic, OpenAI, Azure OpenAI, Groq, Gemini, Moonshot, DeepSeek, Mistral, xAI, Together, Fireworks, Cerebras, Ollama, LM Studio, vLLM
 - **Automatic failover** — `POST /v1/chat/completions` tries providers in order; recovers from timeouts and rate-limits
-- **Observability** — per-request audit log + live metrics at `GET /metrics`
+- **Observability** — per-request audit log (JSONL, SIEM-ready) + live metrics at `GET /metrics`
 - **Multi-key round-robin** — distribute load across multiple API keys per provider
+- **Multi-token hot rotation** — rotate tokens without downtime
 
 ## Quick start
 
-```python
-import openai
+```bash
+# 1 — generate a token
+KEYBRIDGE_TOKEN=$(python -c "import uuid; print(uuid.uuid4())")
 
+# 2 — run keybridge
+docker run -d \
+  --name keybridge -p 8080:8080 \
+  -e PROXY_TOKEN=$KEYBRIDGE_TOKEN \
+  -e OPENAI_API_KEY=sk-proj-... \
+  -e ANTHROPIC_API_KEY=sk-ant-... \
+  ghcr.io/iagop03/keybridge:latest
+
+# 3 — call it from any OpenAI-compatible client
+python -c "
+import openai, os
 client = openai.OpenAI(
-    base_url="https://proxy.antcrew.org/openai",
-    api_key="your-proxy-token",          # proxy token, not an OpenAI key
+    base_url='http://localhost:8080/openai',
+    api_key='$KEYBRIDGE_TOKEN',
 )
-
-response = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[{"role": "user", "content": "Hello"}],
-)
+print(client.chat.completions.create(model='gpt-4o', messages=[{'role':'user','content':'Hello'}]).choices[0].message.content)
+"
 ```
 
-Or use the unified endpoint to let the proxy pick the best available provider:
-
-```python
-client = openai.OpenAI(
-    base_url="https://proxy.antcrew.org",   # /v1 path
-    api_key="your-proxy-token",
-)
-
-response = client.chat.completions.create(
-    model="any",                             # model is replaced by FAILOVER_CHAIN
-    messages=[{"role": "user", "content": "Hello"}],
-)
-# X-Proxy-Provider response header tells you which provider was used
-```
-
-## Endpoints summary
+## Endpoints
 
 | Endpoint | Description |
 |---|---|
 | `POST /{provider}/{path}` | Route to a specific provider |
 | `POST /v1/chat/completions` | Unified with automatic failover via `FAILOVER_CHAIN` |
 | `GET /health` | Liveness check + provider key summary |
-| `GET /metrics` | Live in-memory request stats (p50/p99 latency, tokens, errors) |
+| `GET /metrics` | Live in-memory stats (p50/p99 latency, tokens, errors) |
 
-## Key concepts
+## Integrations
 
-- **Auth**: set `x-api-key` or `Authorization: Bearer` to your proxy token (not a provider key)
-- **Routing**: path prefix determines the provider — `/anthropic/v1/messages`, `/openai/v1/chat/completions`, etc.
-- **Key injection**: the proxy strips your token and injects the real provider key from its environment
-- **Audit log**: every request logged to `AUDIT_LOG_PATH` in JSON-lines format; API keys are SHA-256 hashed
+- [CrewAI](integrations/crewai.md)
+- [LangGraph / LangChain](integrations/langgraph.md)
+- [AutoGen / OpenAI Agents SDK](integrations/autogen.md)
+- [All integrations](integrations/index.md)
 
-See [Provider routing](routing.md) and [Configuration](configuration.md) for the full reference.
+## Reference
+
+- [Provider routing](routing.md) — full path-prefix table, upstream URLs
+- [Configuration](configuration.md) — all environment variables
+
+## Source
+
+[github.com/iagop03/keybridge](https://github.com/iagop03/keybridge) — MIT license
