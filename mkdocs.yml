@@ -111,5 +111,7 @@ nav:
     - "Run lifecycle & events": architecture/data-flow.md
     - Security: architecture/security.md
   - Releases:
+    - "Week of 25 Aug 2026": releases/2026-w35.md
+    - "Week of 18 Aug 2026": releases/2026-w34.md
     - "Week of 11 Aug 2026": releases/2026-w33.md
     - "Week of 4 Aug 2026": releases/2026-w32.md
