@@ -15,7 +15,7 @@ The Compliance Pack is a paid add-on that transforms antcrew-platform into a com
 | **Self-serve checkout** | `POST /compliance/checkout` — creates a Stripe Checkout session for monthly or annual billing. Pack auto-enables after payment via webhook. |
 | **Daily email digest** | Compliance officers with an `email` set on their API key receive a daily digest of runs completed in the last 24 hours. |
 | **Pack status & pricing** | `GET /compliance/status` — returns whether the pack is active and the effective pricing for the workspace. |
-| **Admin control** | `PATCH /admin/workspaces/{id}` — admin can enable/disable the pack per workspace and set workspace-level price overrides. |
+| **Admin toggle** | `PATCH /admin/workspaces/{id}` — admin can enable/disable the pack per workspace and set workspace-level price overrides. Also available as a one-click button in the admin panel workspace table. |
 | **Platform default pricing** | `PATCH /admin/billing-rates` — set the platform-wide default monthly/annual price for the pack. |
 
 The underlying audit infrastructure (TraceLog, governance hash, `GET /runs/{id}/attestation`, HMAC signing) is available to all workspaces regardless of pack status. The pack adds the **aggregation, bulk export, and non-dev access layer** that turns raw audit data into a compliance artifact.
@@ -106,6 +106,18 @@ Response:
 Redirect the user to `checkout_url`. After payment, Stripe fires `checkout.session.completed` and the platform automatically sets `compliance_pack_enabled = true` for the workspace. Returns `409` if the pack is already enabled.
 
 Required env vars on the server: `STRIPE_SECRET_KEY`, `STRIPE_COMPLIANCE_PRICE_MONTHLY_ID`, `STRIPE_COMPLIANCE_PRICE_ANNUAL_ID`, `STRIPE_SUCCESS_URL`, `STRIPE_CANCEL_URL`.
+
+### Subscription lifecycle
+
+The platform listens to `customer.subscription.updated` and `customer.subscription.deleted` events for Stripe subscriptions that carry `metadata.pack = "compliance"`. Status transitions:
+
+| Stripe status | Pack state |
+|---|---|
+| `active` / `trialing` | Enabled |
+| `past_due` / `unpaid` / `canceled` | **Disabled immediately** |
+| `deleted` event | Disabled |
+
+Payment failure → `past_due` → pack disabled. When payment recovers, `active` → pack re-enabled automatically.
 
 ---
 
