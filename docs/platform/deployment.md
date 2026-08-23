@@ -106,3 +106,47 @@ fly deploy
 ```
 
 The provided `fly.toml` builds a Docker image from `Dockerfile`, runs Alembic migrations on release (`release_command`), and exposes port 8000.
+
+---
+
+## Multi-worker deployments
+
+### Sticky sessions (required)
+
+The SSE broadcaster and WebSocket state are **per-process**. With multiple uvicorn workers (or multiple replicas), a client that connects to worker W1 will only receive events from runs that execute on W1. If the load balancer distributes requests round-robin, clients land on different workers than their run and see silence.
+
+**Sticky sessions must be enabled** on any load balancer or reverse proxy in front of a multi-worker deployment:
+
+=== "nginx"
+    ```nginx
+    upstream antcrew {
+        ip_hash;  # sticky by client IP
+        server 127.0.0.1:8000;
+        server 127.0.0.1:8001;
+    }
+    ```
+
+=== "Fly.io (single machine)"
+    Fly.io routes each request to the nearest healthy machine; for SSE/WebSocket use a single machine or add `fly-prefer-region` header pinning.
+
+=== "Caddy"
+    ```caddy
+    reverse_proxy * {
+        lb_policy cookie antcrew_sticky
+    }
+    ```
+
+!!! warning
+    Without sticky sessions: runs and SSE clients may land on different workers, causing clients to never receive events. Symptoms: run completes server-side, client shows "running" indefinitely.
+
+### Database connection pool
+
+Each worker opens its own connection pool. The default (5 pool + 5 overflow per worker) means 4 workers → up to 40 connections. Size your PostgreSQL `max_connections` accordingly, or lower the pool via env vars:
+
+| Variable | Default | Notes |
+|---|---|---|
+| `DB_POOL_SIZE` | `5` | Connections kept open per worker |
+| `DB_MAX_OVERFLOW` | `5` | Burst connections allowed per worker |
+| `DB_POOL_TIMEOUT` | `30` | Seconds to wait for a connection before error |
+
+Rule of thumb: `DB_POOL_SIZE × workers × replicas < max_connections − 10` (reserve 10 for admin queries).

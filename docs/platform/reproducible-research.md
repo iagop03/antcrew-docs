@@ -52,6 +52,23 @@ for r in results:
 `replay_experiment` re-runs every agent call stored in the SQLite trace and
 compares the original response to the replayed one.
 
+## Determinism caveats
+
+`replay_experiment` re-runs every agent call against the **live LLM** — it does not inject pre-recorded responses. This means:
+
+| What is reproduced | What is NOT reproduced |
+|---|---|
+| Agent names, roles, tools, and prompts | Exact LLM output tokens |
+| Team structure and execution order | Stochastic sampling (temperature > 0) |
+| Cost/token accounting per agent | Responses if the model version changed |
+
+**For bit-exact replay**, pin your pipeline with `temperature=0` and a specific model version (e.g. `model="claude-opus-4-0"` instead of `"claude"`). The `team_hash` verifies agent configuration drift but cannot verify model behavior drift.
+
+!!! info
+    The `matched` field in replay results compares semantic equivalence heuristically, not byte equality. A true delta requires human review of the diff.
+
+---
+
 ## API reference
 
 ### `ReproducibleResearchPipeline`
