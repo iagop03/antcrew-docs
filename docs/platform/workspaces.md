@@ -86,3 +86,33 @@ When `max_cost_usd` is set on a workspace, the platform checks spend hourly and 
 - Configure the Slack webhook in **Settings → Notifications → Slack** or via `PATCH /workspaces/{id}/slack`
 - At 100%, new runs are rejected with a 422 until the limit is raised
 - Alerts fire once per process restart (not once per hour) to avoid flooding
+
+---
+
+## Message-count limit
+
+Long-running pipelines accumulate LLM messages in `TeamState`. Left uncapped, context windows grow unboundedly and drive up cost per run. Set `max_messages` to trim the message list to the most recent N entries after each agent step.
+
+**Workspace default** (applies to all teams in the workspace):
+
+```bash
+PATCH /workspaces/{id}/max-messages
+Content-Type: application/json
+{"max_messages": 100}
+```
+
+Pass `null` to remove the limit.
+
+**Per-team override** (overrides the workspace default for one team type):
+
+```bash
+# Create or update a preset for DevTeam with its own limit
+PATCH /workspaces/{id}/presets/{preset_id}
+{"max_messages": 60}
+```
+
+Priority: team preset `max_messages` > workspace `max_messages` > env `ANTCREW_MAX_MESSAGES` > unlimited.
+
+The limit is also configurable via the `ANTCREW_MAX_MESSAGES` environment variable for self-hosted deployments without a DB.
+
+> **Note:** Trimming keeps the *most recent* N messages, so agents always see the latest context. Earlier messages (initial system setup, old intermediate results) are discarded first.

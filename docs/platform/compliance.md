@@ -237,6 +237,47 @@ Returns a signed JSON certificate (attachment: `certificate-{run_id[:12]}.json`)
 | `drifted` | One or more agents produced a hash different from the approved one |
 | `unchecked` | No approved hashes registered for this team — certification not possible |
 
+---
+
+## HITL decisions in TraceLog
+
+When a HITL review is resolved (approved or rejected) via `POST /reviews/{review_id}`, the platform automatically records the decision in the active TraceLog database. This creates a tamper-evident audit trail of every human oversight action linked to the same SQLite DB as the LLM call records.
+
+**Schema (`hitl_decisions` table):**
+
+| Column | Type | Description |
+|---|---|---|
+| `run_id` | TEXT | Links to the `runs` table |
+| `step` | TEXT | Agent or pipeline step that triggered the review (e.g. `backend_dev`) |
+| `decision` | TEXT | `approved`, `rejected`, or a custom verdict |
+| `reviewer_id` | TEXT | User identifier (email, Slack user id, or API key label) |
+| `reason` | TEXT | Optional free-text explanation from the reviewer |
+| `decided_at` | TEXT | ISO timestamp of when the decision was recorded |
+
+**Read via SDK:**
+
+```python
+from antcrew.trace import TraceLog
+
+trace = TraceLog("./antcrew_trace.db")
+decisions = trace.get_hitl_decisions(run_id)
+# [{"step": "backend_dev", "decision": "approved", "reviewer_id": "alice@co", ...}]
+```
+
+**Record manually** (for custom HITL integrations):
+
+```python
+trace.record_hitl(
+    run_id=run_id,
+    step="legal_review",
+    decision="approved",
+    reviewer_id="legal@company.com",
+    reason="Reviewed for GDPR compliance",
+)
+```
+
+The `hitl_decisions` table is created automatically when an existing TraceLog DB is opened (no migration needed — the `_migrate()` function creates it on first access).
+
 The certificate does not require the Compliance Pack to be enabled — any workspace can request it. The `document_hash` field (SHA-256 of the document body) lets auditors verify the file was not tampered with. When `ATTESTATION_HMAC_SECRET` is configured, `hmac_sha256` provides an additional platform-signed proof.
 
 ### Typical workflow

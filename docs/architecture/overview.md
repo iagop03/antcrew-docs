@@ -99,3 +99,44 @@ sequenceDiagram
 | `antcrew` | Agent framework + EngineLoop + CLI (antcrew_engine bundled) | Your codebase |
 | `antcrew-platform` | Dashboard, storage, HITL reviews | antcrew.org (managed cloud) |
 | `keybridge` | LLM routing, BYOK key injection | antcrew.org or your own infra |
+
+---
+
+## State stores
+
+Three distinct stores exist inside an AntCrew pipeline run. Understanding which one to use prevents subtle cross-run or cross-layer bugs:
+
+| Store | Lifetime | Scope | Use for |
+|---|---|---|---|
+| **TeamState** (LangGraph) | One `team.run()` call | All agent nodes in the run | Typed artifact slots (PRD, tickets, code_artifacts…), LLM message history, metadata routing flags |
+| **MemoryStore** (engine) | One `EngineLoop` instance | Layer-2 capability executors only | Accumulating code artifacts across loop iterations — never shared with Layer-1 teams |
+| **KVMemory / RunMemory** (DB) | Cross-run, durable | One team in one workspace | Long-lived agent memory across separate runs (e.g. "decisions from the last sprint") |
+
+Data flows one direction per call: `KVMemory → (loaded at run start) → TeamState → (saved at run end) → KVMemory`. The MemoryStore is internal to the EngineLoop and never crosses into TeamState.
+
+---
+
+## Artifact contracts
+
+The `@agent_contract` decorator lets you declare build-time artifact contracts on agent classes. The Supervisor verifies them at `build()` time — before any LLM call — and raises `ContractViolationError` with a descriptive message if a consumed type has no producing predecessor in the flow.
+
+```python
+from antcrew.core.contracts import agent_contract
+from antcrew.core.artifacts import PRD, CodeArtifact
+
+@agent_contract(produces=PRD)
+class BusinessAnalystAgent(BaseAgent): ...
+
+@agent_contract(consumes=PRD, produces=CodeArtifact)
+class BackendDevAgent(BaseAgent): ...
+```
+
+If `BackendDevAgent` is placed in the flow without a `BusinessAnalystAgent` predecessor, `build()` raises:
+
+```
+ContractViolationError: Artifact contract violation in agent 'backend_dev':
+consumes PRD but no ancestor in the flow produces it.
+Agents that produce PRD: (none — add @agent_contract(produces=...) to a predecessor).
+```
+
+Contract checking is transitive — it validates the full ancestor chain, not just direct predecessors.
