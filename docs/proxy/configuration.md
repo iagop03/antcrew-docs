@@ -69,8 +69,12 @@ See [Provider routing](routing.md) for the full unified endpoint reference.
 | Variable | Default | Description |
 |---|---|---|
 | `AUDIT_LOG_PATH` | `/var/log/keybridge/audit.jsonl` | Append-only JSON-lines audit log. Each line is one request. The API key is SHA-256 hashed — plaintext keys are never written. |
+| `METRICS_TOKEN` | _(unset)_ | When set, `GET /health` and `GET /metrics` require a matching `Authorization: Bearer <token>` or `x-api-key: <token>` header. Leave unset to keep them public (default). |
 
 The `GET /metrics` endpoint returns live in-memory stats: request count, token totals, p50/p99 latency, and error counts. Stats reset on process restart.
+
+!!! tip "Securing observability endpoints"
+    In production, set `METRICS_TOKEN` to a random secret so only your monitoring system can reach `/health` and `/metrics`. This prevents competitor traffic analysis via your public health endpoint.
 
 ### Limits
 
@@ -81,6 +85,9 @@ The `GET /metrics` endpoint returns live in-memory stats: request count, token t
 | `MAX_CONCURRENT_ANTHROPIC` | `20` | Per-provider override — use this to set tighter limits on expensive providers. Replace `ANTHROPIC` with any provider name in uppercase. |
 
 ### Upstream URL overrides
+
+!!! warning "Security — SSRF risk"
+    Each `*_BASE_URL` variable is used verbatim as the upstream target. An attacker who can write to these variables can redirect proxy traffic to arbitrary hosts, including internal services. Treat them with the same care as API keys: set them at container build time or via a secrets manager, never accept them from user input.
 
 | Variable | Default |
 |---|---|
