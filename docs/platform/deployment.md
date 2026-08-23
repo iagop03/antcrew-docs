@@ -111,11 +111,19 @@ The provided `fly.toml` builds a Docker image from `Dockerfile`, runs Alembic mi
 
 ## Multi-worker deployments
 
-### Sticky sessions (required)
+### SSE cross-worker behaviour
 
-The SSE broadcaster and WebSocket state are **per-process**. With multiple uvicorn workers (or multiple replicas), a client that connects to worker W1 will only receive events from runs that execute on W1. If the load balancer distributes requests round-robin, clients land on different workers than their run and see silence.
+The SSE broadcaster polls the **shared database** every second. Because all workers share the same database, a client that connects to worker W2 for a run that executed on W1 will still receive all events — W2 polls the DB and finds W1's rows. Sticky sessions are **not required for SSE correctness**.
 
-**Sticky sessions must be enabled** on any load balancer or reverse proxy in front of a multi-worker deployment:
+Sticky sessions reduce redundant DB polls (each worker with SSE subscribers independently polls the DB for runs it serves) but are optional. A future Redis pub/sub relay (`REDIS_PUBSUB_URL`) can replace the per-worker polling with a single global publisher.
+
+### WebSocket state (sticky sessions recommended)
+
+WebSocket state (`/stream/ws/{run_id}`) is **per-process**. With multiple workers, a WS client should connect to the same worker for the duration of a run. Sticky sessions are recommended for WebSocket connections.
+
+### Sticky sessions configuration
+
+**Sticky sessions are optional but reduce DB load** on any load balancer or reverse proxy in front of a multi-worker deployment:
 
 === "nginx"
     ```nginx
@@ -150,3 +158,45 @@ Each worker opens its own connection pool. The default (5 pool + 5 overflow per 
 | `DB_POOL_TIMEOUT` | `30` | Seconds to wait for a connection before error |
 
 Rule of thumb: `DB_POOL_SIZE × workers × replicas < max_connections − 10` (reserve 10 for admin queries).
+
+---
+
+## Artifact storage
+
+By default, engine-run artifacts (source files, tests, docs) are embedded inline in the `Run.state` column (EncryptedJSON). For large artifacts or long-running pipelines, offload to external storage:
+
+| `ARTIFACT_STORAGE_URL` value | Backend | Notes |
+|---|---|---|
+| _(unset)_ | Inline in DB | Default, backward-compatible |
+| `file:///abs/path` | Local filesystem | Good for single-machine or NFS mounts |
+| `s3://bucket/prefix` | Amazon S3 | Requires `pip install boto3`; credentials via IAM / `AWS_*` env vars |
+
+When external storage is configured, artifact entries in `Run.state` carry a `storage_key` field instead of `content`. The `/runs/{run_id}/artifacts` and `/runs/{run_id}/artifacts.zip` endpoints resolve content transparently — no API changes for clients.
+
+---
+
+## Observability
+
+### Request ID (correlation ID)
+
+Every request gets a unique `X-Request-ID` header (UUID4) propagated through structured logs. Supply your own ID from upstream systems:
+
+```
+X-Request-ID: my-trace-id-abc123
+```
+
+The same value is echoed in the response `X-Request-ID` header and appears as `request_id` in every JSON log line produced during that request.
+
+### Redis pub/sub (optional monitoring)
+
+When `REDIS_PUBSUB_URL` is set (e.g. `redis://localhost:6379/0`), the SSE broadcaster publishes run events to the Redis channel `antcrew:sse:{run_id}` after each DB poll. External consumers (webhook bridges, monitoring dashboards) can subscribe without adding extra DB load.
+
+Requires: `pip install "redis[asyncio]"`.
+
+---
+
+## Process restart behaviour
+
+On startup, the platform marks any run stuck in `status="running"` (left by a crashed process) as `status="interrupted"`. This prevents stale "running" indicators in the dashboard after a restart. The count of recovered zombie runs is logged at WARN level.
+
+Interrupted runs can be restarted via the dashboard or the `/runs/{run_id}/rerun` endpoint.

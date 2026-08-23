@@ -1,128 +1,159 @@
 # Compliance Pack
 
-antcrew ships with the infrastructure regulated industries need out of the box. This page maps that infrastructure to common compliance requirements.
+The Compliance Pack is an add-on for teams operating in regulated industries — healthcare (HIPAA), financial services (SOC 2, PCI-DSS), and legal-tech (GDPR Art. 17, ISO 27001). It bundles auditable attestation documents, an encrypted TraceLog reference, a compliance officer dashboard, and role-based access into a single workspace-level add-on.
+
+---
 
 ## What's included
 
-| Feature | What it does | Where to find it |
-|---|---|---|
-| **Run attestation** | Cryptographically verifiable provenance document for every run | [Attestation](attestation.md) |
-| **Governance hashes** | Detects prompt drift; proves identical agent configuration across runs | [Governance](../engine/governance.md) |
-| **TraceLog & Replay** | Immutable, replayable event log for every run | [TraceLog](../engine/tracelog.md) |
-| **Field encryption** | Encrypt any output field at rest in the run state | [BYOK](byok.md) |
-| **BYOK / data residency** | Your keys, your infra — no model vendor ever sees your data | [BYOK](byok.md) |
-| **HITL audit trail** | Every human approval decision is logged with actor, timestamp, and payload | [HITL](hitl.md) |
+| Feature | Description |
+|---|---|
+| **Signed attestation documents** | Every run produces a HMAC-signed JSON document (schema 1.1) with agent governance hashes, cost, timestamps, and a SHA-256 digest of the TraceLog. |
+| **TraceLog reference** | When the engine emits a `tracelog` in the run state, the attestation includes a `tracelog_ref` with a tamper-evident SHA-256 digest. Auditors can verify the log was not modified without seeing its contents. |
+| **ZIP export** | Download all completed runs as a ZIP of signed attestation files in one click, ready to hand to an auditor. |
+| **Compliance dashboard** | A standalone HTML page (`/compliance/dashboard`) that non-developer compliance officers can access directly with a `compliance_viewer` API key — no developer tooling required. |
+| **`compliance_viewer` role** | A read-only API key role scoped to `/compliance/*` paths only. Issue one per auditor; revoke on offboarding. |
+| **Weekly digest emails** | `compliance_viewer` keys with an email address receive a weekly summary of completed runs automatically. |
+| **Stripe billing** | Enabled via `POST /compliance/checkout`. The pack activates automatically after Stripe confirms payment. Cancellation disables it instantly. |
 
 ---
 
-## Attestation for auditors
+## Enabling the pack
 
-When a regulator or auditor asks "what AI system produced this output?", you give them an attestation file:
+### Via Stripe checkout (production)
 
 ```bash
-curl -H "X-Api-Key: acw_..." \
-     "https://antcrew.org/runs/{run_id}/attestation" \
-     -o attestation-{run_id}.json
+POST /compliance/checkout
+Authorization: X-Api-Key <admin_key>
+
+{"billing_cycle": "monthly"}   # or "annual"
 ```
 
-The file is self-contained JSON. It includes the team, every agent that ran, their governance hashes, token usage, cost, and timestamps. The `document_hash` field lets anyone verify the file was not modified after generation — no access to the platform required.
+Returns `{"checkout_url": "https://checkout.stripe.com/..."}`. After payment, the platform webhook enables the pack automatically.
 
-See [Attestation](attestation.md) for the full format and verification scripts.
-
----
-
-## Governance hashes
-
-A governance hash is a 16-character SHA-256 prefix over an agent's name, role, stage, system prompt suffix, and tool list. It changes if any of those change.
-
-This gives you:
-
-- **Proof of configuration** — "Run 7842 used the approved agent configuration"
-- **Drift detection** — a hash mismatch in CI means someone changed a prompt without review
-- **Cross-run equivalence** — two runs with the same governance hash are provably identical in agent setup
-
-The hash is in every attestation, in every `agent.end` TraceLog event, and accessible at runtime as `agent.governance_hash`.
-
----
-
-## TraceLog as an audit trail
-
-Every run produces an immutable event log: `run.start`, `agent.start`, `tool.call`, `tool.result`, `agent.end`, `run.end`. Events are stored in the `events` table and streamed to the client.
-
-Relevant for:
-
-- **GDPR Article 12** — demonstrates automated decision-making with explainable step-by-step logic
-- **SOC 2 Type II** — demonstrates that access to AI-generated outputs is logged and attributable
-- **Internal audit** — the TraceLog is the full reasoning trail; Studio can replay it interactively
-
-Replay a run via Studio or download the raw events:
+### Via admin API (internal / dev)
 
 ```bash
-curl -H "X-Api-Key: acw_..." "/runs/{run_id}/events" | jq '.'
+PATCH /admin/workspaces/{id}
+Authorization: Bearer <PLATFORM_ADMIN_TOKEN>
+
+{"compliance_pack_enabled": true}
 ```
 
 ---
 
-## Field encryption
-
-Sensitive fields in the run state (PII, PHI, confidential outputs) can be encrypted at rest using your own keys. The platform stores ciphertext; plaintext never leaves your environment.
-
-Configure via workspace settings → BYOK → field encryption. See [BYOK](byok.md).
-
----
-
-## Data residency & BYOK
-
-- **BYOK models** — point antcrew at your own LLM endpoint (Azure OpenAI in your region, Bedrock, on-prem Ollama). The model vendor never sees your data.
-- **Self-hosted** — deploy the platform on your infrastructure. antcrew never sees your run payloads.
-- **Managed with BYOK keys** — use antcrew's managed service but supply your own encryption keys. We cannot read your run state.
-
-See [BYOK](byok.md) and [Proxy](../proxy/index.md) for setup.
-
----
-
-## HITL audit trail
-
-Every human-in-the-loop approval decision is recorded:
+## Attestation document (schema 1.1)
 
 ```json
 {
-  "event_type": "hitl.approval",
-  "actor": "alice@example.com",
-  "decision": "approved",
+  "schema_version": "1.1",
   "run_id": "abc123",
-  "timestamp": "2026-08-14T10:05:00+00:00"
+  "team": "LegalReviewTeam",
+  "request_preview": "Review contract clause 7.3...",
+  "status": "success",
+  "cost_usd": 0.048,
+  "workspace_id": 12,
+  "created_at": "2026-08-22T14:00:00+00:00",
+  "finished_at": "2026-08-22T14:02:31+00:00",
+  "agents": [
+    {
+      "agent_name": "LegalReviewer",
+      "governance_hash": "sha256:abc...",
+      "stage": "review",
+      "duration_s": 18.4,
+      "tokens_in": 2100,
+      "tokens_out": 850,
+      "cost_usd": 0.048
+    }
+  ],
+  "tracelog_ref": {
+    "algorithm": "sha256",
+    "digest": "sha256:def...",
+    "entries": 4
+  },
+  "platform_version": "antcrew-platform",
+  "engine_version": "0.34.0",
+  "attestation_generated_at": "2026-08-22T14:02:32+00:00",
+  "document_hash": "sha256:ghi...",
+  "hmac_sha256": "hmac-sha256:jkl..."
 }
 ```
 
-This lets you answer: who approved which AI action, when, and what the action was.
+### Verifying integrity offline
+
+```python
+import hashlib, json, hmac
+
+doc = json.load(open("attestation-abc123.json"))
+
+# 1. Verify document_hash (SHA-256 of body without hash fields)
+body = {k: v for k, v in doc.items() if k not in ("document_hash", "hmac_sha256")}
+expected_hash = "sha256:" + hashlib.sha256(json.dumps(body, sort_keys=True).encode()).hexdigest()
+assert doc["document_hash"] == expected_hash, "document_hash mismatch — file may have been tampered"
+
+# 2. Verify HMAC (requires ATTESTATION_HMAC_SECRET)
+secret = b"your-secret"
+body_with_hash = {k: v for k, v in doc.items() if k != "hmac_sha256"}
+expected_hmac = "hmac-sha256:" + hmac.new(
+    secret, json.dumps(body_with_hash, sort_keys=True).encode(), "sha256"
+).hexdigest()
+assert doc["hmac_sha256"] == expected_hmac, "HMAC invalid — document not issued by this server"
+```
 
 ---
 
-## Regulatory mapping
+## API reference
 
-| Regulation | antcrew feature |
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| `GET` | `/compliance/status` | any key | Pack enabled/disabled + effective pricing |
+| `GET` | `/compliance/dashboard` | any key | Compliance officer HTML dashboard |
+| `GET` | `/compliance/attestations` | admin or compliance_viewer | Paginated list of runs with attestation URLs |
+| `GET` | `/compliance/export` | admin or compliance_viewer | ZIP of signed attestation JSONs for all completed runs |
+| `POST` | `/compliance/checkout` | admin | Create Stripe Checkout Session for the pack |
+| `GET` | `/runs/{run_id}/attestation` | admin or compliance_viewer | Individual attestation download |
+
+---
+
+## Required environment variables
+
+| Variable | Description |
 |---|---|
-| GDPR Art. 12 (transparency in automated decisions) | TraceLog + Attestation |
-| GDPR Art. 25 (data protection by design) | BYOK + field encryption |
-| HIPAA § 164.312(b) (audit controls) | TraceLog + HITL audit |
-| SOC 2 CC7.2 (system monitoring) | TraceLog + governance hashes |
-| ISO 27001 A.12.4 (logging & monitoring) | TraceLog + attestation |
-| EU AI Act Art. 13 (transparency for high-risk AI) | Attestation + governance hashes |
+| `ATTESTATION_HMAC_SECRET` | Strong random secret for HMAC signing. Generate: `openssl rand -hex 32`. Without it, attestations include `document_hash` only (no HMAC). |
+| `STRIPE_COMPLIANCE_PRICE_MONTHLY_ID` | Stripe Price ID for monthly billing. |
+| `STRIPE_COMPLIANCE_PRICE_ANNUAL_ID` | Stripe Price ID for annual billing. |
 
 ---
 
-## Checklist for a compliance audit
+## Setting workspace-level price overrides
 
-- [ ] Download attestation for each run in scope: `GET /runs/{run_id}/attestation`
-- [ ] Verify `document_hash` integrity with the [verification script](attestation.md#verifying-integrity)
-- [ ] If `ATTESTATION_HMAC_SECRET` is configured, verify `hmac_sha256` as well
-- [ ] Export TraceLog events: `GET /runs/{run_id}/events`
-- [ ] Confirm governance hashes match your approved configuration snapshot
-- [ ] Review HITL approval log for any human decisions in the run
+Platform admins can override the default compliance pack price per workspace:
+
+```bash
+PATCH /admin/workspaces/{id}
+{"compliance_pack_price_monthly": 79.0, "compliance_pack_price_annual": 790.0}
+```
+
+Default prices are set via `PATCH /admin/billing-rates`:
+
+```bash
+PATCH /admin/billing-rates
+{"compliance_pack_price_monthly": 49.0, "compliance_pack_price_annual": 490.0}
+```
 
 ---
 
-## Questions
+## Issuing compliance_viewer keys
 
-Open an issue or reach the team at [support@antcrew.org](mailto:support@antcrew.org).
+```bash
+POST /api-keys/
+Authorization: X-Api-Key <admin_key>
+
+{
+  "label": "External Auditor — KPMG",
+  "role": "compliance_viewer",
+  "email": "auditor@kpmg.example"
+}
+```
+
+The key is returned once. The auditor can access `/compliance/*` paths only. Add `"email"` to receive weekly digest emails. Revoke with `DELETE /api-keys/{id}`.
