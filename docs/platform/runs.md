@@ -265,6 +265,70 @@ For runs that have already finished, the stream flushes all events from the data
 
 ---
 
+## Artifact timeline
+
+Every completed run stores its output artifacts (`code_artifacts`, `test_artifacts`, `doc_artifacts`) in its state. The artifact timeline endpoint aggregates these across runs in chronological order and computes per-file diffs between consecutive versions — giving you a history of how your workspace's artifacts evolved without specifying run-ID pairs manually.
+
+```bash
+# Full timeline for the workspace (last 20 completed runs)
+GET /runs/artifact-timeline
+
+# Filter to code artifacts only
+GET /runs/artifact-timeline?artifact_type=code_artifacts
+
+# Filter to a specific team
+GET /runs/artifact-timeline?team=DevTeam&limit=50
+```
+
+**Response shape:**
+
+```json
+{
+  "runs_scanned": 5,
+  "versions_with_artifacts": 3,
+  "artifact_type": "all",
+  "timeline": [
+    {
+      "version": 1,
+      "run_id": "abc123",
+      "team": "DevTeam",
+      "created_at": "2026-08-20T14:30:00",
+      "files_total": 4,
+      "files_changed": 4,
+      "lines_added": 120,
+      "lines_removed": 0,
+      "files": [
+        { "file_path": "src/app.py", "status": "added", "lines_added": 80, "lines_removed": 0 }
+      ]
+    },
+    {
+      "version": 2,
+      "run_id": "def456",
+      "team": "DevTeam",
+      "created_at": "2026-08-21T09:15:00",
+      "files_total": 4,
+      "files_changed": 1,
+      "lines_added": 12,
+      "lines_removed": 3,
+      "files": [
+        { "file_path": "src/app.py", "status": "changed", "lines_added": 12, "lines_removed": 3 },
+        { "file_path": "src/utils.py", "status": "unchanged", "lines_added": 0, "lines_removed": 0 }
+      ]
+    }
+  ]
+}
+```
+
+**File status values:** `added` · `changed` · `unchanged` · `removed`
+
+Runs that produced no artifacts matching the requested type are silently skipped; the `version` counter only increments for runs that contributed artifacts. `runs_scanned` counts all completed runs queried; `versions_with_artifacts` counts how many appear in the timeline.
+
+**Relation to compare-artifacts:** `GET /runs/compare-artifacts?run_a=X&run_b=Y` diffs two specific runs you name. The timeline endpoint automates this across the workspace in chronological order.
+
+**SDK mirror:** The `ArtifactHistory` class in the antcrew SDK provides the same `timeline()` and `record()` API for local CLI workflows, storing versions in a JSON file. The platform endpoint uses the existing `run.state` DB column as its storage — no extra schema is needed.
+
+---
+
 ## Run templates
 
 Templates save a run configuration (team, request, cost cap, repo URL) for quick reuse.
