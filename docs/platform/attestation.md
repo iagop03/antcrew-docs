@@ -155,3 +155,11 @@ for agent, h_a in hashes_a.items():
     if h_b and h_b != h_a:
         print(f"⚠ {agent} changed: {h_a} → {h_b}")
 ```
+
+---
+
+## See also
+
+- [Compliance Pack](compliance-pack.md) — bulk attestation export, dashboard, and role-scoped keys for compliance officers
+- [Field encryption](encryption.md) — AES-256-GCM encryption for run.state and integration credentials
+- [Data retention](data-retention.md) — retention policies and GDPR erasure

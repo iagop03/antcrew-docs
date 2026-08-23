@@ -94,6 +94,7 @@ nav:
     - "Client portal & margin": platform/client-portal.md
     - "Run attestation": platform/attestation.md
     - "Compliance Pack": platform/compliance-pack.md
+    - "Compliance Pack — overview": platform/compliance-pack-overview.md
     - "PM integrations": platform/pm-integrations.md
     - "Team history & regression": platform/team-history.md
     - "Cost estimation": platform/cost-estimation.md
@@ -101,6 +102,8 @@ nav:
     - "Agent memory": platform/run-memory.md
     - "A2A Protocol": platform/a2a.md
     - "Data retention": platform/data-retention.md
+    - "Privacy Policy": platform/privacy-policy.md
+    - "DPA template": platform/dpa-template.md
   - Proxy:
     - Overview: proxy/index.md
     - Configuration: proxy/configuration.md

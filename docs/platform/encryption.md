@@ -48,3 +48,11 @@ For healthcare (HIPAA) or financial (PCI-DSS) deployments, combine field encrypt
 - Network isolation (VPC, private subnets)
 
 AES-256-GCM provides authenticated encryption: tampering with the ciphertext causes an explicit `cryptography.exceptions.InvalidTag` error rather than silently returning garbage.
+
+---
+
+## See also
+
+- [Compliance Pack](compliance-pack.md) — bulk attestation export and compliance officer dashboard
+- [Run attestation](attestation.md) — governance hash and HMAC-signed provenance documents
+- [Data retention](data-retention.md) — retention policies and GDPR erasure

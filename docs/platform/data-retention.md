@@ -46,9 +46,9 @@ antcrew is operated by a company established in Spain and is subject to the GDPR
   to an identified natural person. Under GDPR Art. 5(1)(e), personal data must not be kept
   longer than necessary for the purpose for which it was collected.
 
-- If a user exercises their right to erasure (GDPR Art. 17), the platform does not currently
-  have an automated erasure workflow. A platform administrator must delete the relevant rows
-  directly in the database (see [Manual deletion](#manual-deletion) below).
+- If a user exercises their right to erasure (GDPR Art. 17), use the API endpoints
+  described in [GDPR erasure API](#gdpr-erasure-api) below. Manual SQL deletion is also
+  documented for self-hosted operators without API access.
 
 - The current indefinite retention of runs is justifiable for operational and audit purposes.
   If your deployment has stricter retention obligations, consider adding a `RUN_RETENTION_DAYS`
@@ -102,3 +102,94 @@ DELETE FROM workspace   WHERE id = <id>;
 !!! warning "No cascade"
     SQLModel relationships are not configured with `ondelete="CASCADE"` on the run-level
     tables. Always delete child rows before parent rows to avoid foreign-key violations.
+
+---
+
+## GDPR erasure API
+
+The platform provides two admin-only endpoints for GDPR Art. 17 erasure requests.
+Both require a platform-admin API key.
+
+### Erase a user (anonymise PII)
+
+`POST /admin/users/{user_id}/erase`
+
+Anonymises account PII and erases run request content across all workspaces the user
+belonged to. Irreversible.
+
+**What it does:**
+
+- Replaces `user.email` with `erased_{id}@erased.antcrew`
+- Clears `display_name`, `password_hash`, `totp_secret`
+- Replaces `run.request` with `[erased {timestamp}]` for all runs in the user's workspaces
+- Deletes all discovery sessions for those workspaces
+- Revokes all active API keys
+- Deletes all browser sessions
+
+**Response:**
+
+```json
+{
+  "erased_at": "2026-08-23T10:00:00",
+  "user_id": 42,
+  "email_anonymised": "erased_42@erased.antcrew",
+  "runs_request_erased": 187,
+  "discovery_sessions_deleted": 3,
+  "api_keys_revoked": 2,
+  "browser_sessions_deleted": 1,
+  "workspaces_affected": [7, 12]
+}
+```
+
+### Delete a workspace (account closure / full erasure)
+
+`DELETE /admin/workspaces/{workspace_id}`
+
+Deletes all data for a workspace and the workspace itself. Use for account closure or
+when a workspace-level erasure request is received. Irreversible.
+
+**Deletion order (respects FK constraints):**
+
+1. `agent_event` rows linked to workspace runs
+2. `event` rows linked to workspace runs
+3. `ticket` rows linked to workspace runs
+4. `hitl_review` rows linked to workspace runs
+5. `webhook_delivery` rows linked to workspace runs
+6. `run` rows for the workspace
+7. `api_key` rows for the workspace
+8. `workspacemembership` rows
+9. `discoverysession` rows
+10. `webhookconfig` rows
+11. `workspace` row
+
+**Response:**
+
+```json
+{
+  "workspace_id": 7,
+  "deleted_at": "2026-08-23T10:00:00+00:00",
+  "rows_deleted": {
+    "runs": 187,
+    "events": 4210,
+    "tickets": 94,
+    "api_keys": 3,
+    ...
+  }
+}
+```
+
+### When to use which endpoint
+
+| Scenario | Endpoint |
+|---|---|
+| Individual user requests erasure under Art. 17 | `POST /admin/users/{user_id}/erase` |
+| Workspace cancels and requests full data deletion | `DELETE /admin/workspaces/{workspace_id}` |
+| GDPR erasure for a user who was member of multiple workspaces | `POST /admin/users/{user_id}/erase` (covers all workspaces) |
+
+---
+
+## See also
+
+- [Privacy Policy](privacy-policy.md) — full data processing description and data subject rights
+- [DPA template](dpa-template.md) — Data Processing Agreement for customers who use antcrew as a Processor
+- [Compliance Pack](compliance-pack.md) — bulk attestation export and compliance officer dashboard
