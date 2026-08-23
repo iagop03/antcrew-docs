@@ -157,3 +157,91 @@ Authorization: X-Api-Key <admin_key>
 ```
 
 The key is returned once. The auditor can access `/compliance/*` paths only. Add `"email"` to receive weekly digest emails. Revoke with `DELETE /api-keys/{id}`.
+
+---
+
+## Certified Agent (UC3)
+
+The Certified Agent flow lets you register an **approved governance hash** for each agent and then verify on every run that the agent configuration was not modified.
+
+### How governance hashes work
+
+Every agent emits a `governance_hash` — a deterministic SHA-256[:16] of its name, role, model, stage, and tool list — in the `agent.end` event. Identical hashes across runs prove the agent config was unchanged.
+
+### Register an approved hash
+
+```bash
+POST /compliance/approved-hashes
+Authorization: X-Api-Key <admin_key>
+
+{
+  "team": "DevTeam",
+  "agent_name": "BusinessAnalyst",
+  "governance_hash": "a1b2c3d4e5f60001",
+  "label": "v1.2 approved by security team"
+}
+```
+
+Returns `201` with the registered record. Only one active hash per (team, agent_name) is allowed; register a second one returns `409` — delete the existing hash first.
+
+### List and manage approved hashes
+
+```bash
+# List all active approved hashes
+GET /compliance/approved-hashes
+GET /compliance/approved-hashes?team=DevTeam
+
+# Soft-delete (retains record for audit history)
+DELETE /compliance/approved-hashes/{id}
+```
+
+### Download a run certificate
+
+```bash
+GET /runs/{run_id}/certificate
+```
+
+Returns a signed JSON certificate (attachment: `certificate-{run_id[:12]}.json`) with:
+
+```json
+{
+  "schema_version": "1.0",
+  "certificate_type": "agent_certification",
+  "run_id": "abc123def456",
+  "team": "DevTeam",
+  "certification_status": "certified",
+  "agents": [
+    {
+      "agent_name": "BusinessAnalyst",
+      "governance_hash": "a1b2c3d4e5f60001",
+      "approved_hash": "a1b2c3d4e5f60001",
+      "status": "certified"
+    },
+    {
+      "agent_name": "BackendDev",
+      "governance_hash": "badcafe00000001",
+      "approved_hash": "deadbeef0000001",
+      "status": "drifted"
+    }
+  ],
+  "document_hash": "sha256:...",
+  "hmac_sha256": "hmac-sha256:..."
+}
+```
+
+**`certification_status` values:**
+
+| Value | Meaning |
+|---|---|
+| `certified` | All agents with registered hashes matched — config was not modified |
+| `drifted` | One or more agents produced a hash different from the approved one |
+| `unchecked` | No approved hashes registered for this team — certification not possible |
+
+The certificate does not require the Compliance Pack to be enabled — any workspace can request it. The `document_hash` field (SHA-256 of the document body) lets auditors verify the file was not tampered with. When `ATTESTATION_HMAC_SECRET` is configured, `hmac_sha256` provides an additional platform-signed proof.
+
+### Typical workflow
+
+1. Run `DevTeam` in a controlled environment and note the governance hashes from `GET /runs/{id}/governance`.
+2. Security team approves the hashes: `POST /compliance/approved-hashes` for each agent.
+3. In production, download `GET /runs/{id}/certificate` after each run.
+4. `certification_status: certified` → config unchanged. `drifted` → investigate the agent that changed.
