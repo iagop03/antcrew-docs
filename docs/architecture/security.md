@@ -85,6 +85,31 @@ On a **public host** (`HOST` not in `127.0.0.1`, `localhost`, `::1`), open mode 
 
 To enforce auth even on localhost (useful in CI environments with DB access): `ANTCREW_REQUIRE_AUTH=true`.
 
+## Content Security Policy (CSP)
+
+The platform injects a cryptographic nonce into every HTML response via `_SecurityHeadersMiddleware`. Each request generates a fresh `secrets.token_urlsafe(16)` nonce that is:
+
+1. Added to the `script-src` CSP directive as `'nonce-{value}'`
+2. Injected as a `nonce="..."` attribute into every inline `<script>` tag in the response body
+
+The effective `script-src` directive is:
+```
+script-src 'self' 'nonce-{random}' https://cdn.jsdelivr.net
+```
+
+This eliminates `'unsafe-inline'` from `script-src` — only scripts bearing the matching nonce can execute, blocking XSS payload injection. External scripts (Alpine.js from CDN) are controlled by the origin allowlist and do not require a nonce.
+
+## SSRF and DNS rebinding
+
+Outbound HTTP requests (webhooks, repository clones) pass through `validate_external_url()` which:
+
+1. Validates the URL scheme (https required by default)
+2. Blocks known internal hostnames (`localhost`, `169.254.169.254`, etc.)
+3. Validates IP literals against private/reserved ranges
+4. **Resolves domain names via DNS** (`socket.getaddrinfo`) and validates all returned IPs — this narrows the DNS-rebinding window between URL validation and the actual request
+
+Pass `resolve_dns=False` only in tests or when an egress firewall provides the authoritative control. Network-level egress filtering (blocking outbound traffic to RFC 1918 ranges) remains the defense-in-depth control.
+
 ## Run state encryption
 
 The `state` column in the `run` table (LLM prompts, generated code, intermediate artifacts) is encrypted with AES-GCM-256 when `ANTCREW_ENCRYPTION_KEY` is set. **Without it, run state is stored in plaintext.** In `APP_ENV=prod`, the platform refuses to start without this key.
