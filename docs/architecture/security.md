@@ -37,7 +37,7 @@ MFA can be disabled at any time via `POST /auth/mfa/disable` (requires CSRF toke
 - Each workspace has one or more **workspace API keys** with a role (`admin | write | read | reviewer`)
 - A single key can be a member of multiple workspaces
 - Keys can be rotated at any time without downtime
-- The platform master key (`PLATFORM_API_KEY`) is a static env var that bypasses the DB check — useful for infrastructure scripts; restrict its exposure
+- The platform master key (`PLATFORM_API_KEY`) is a static env var that bypasses the DB check — useful for infrastructure scripts; **must be ≥ 32 characters** (startup blocks if shorter). Generate with: `python -c "import secrets; print(secrets.token_urlsafe(32))"`
 
 ## LLM key storage (BYOK)
 
@@ -74,6 +74,23 @@ curl -X POST https://your-platform.example.com/admin/make-admin \
 
 `PLATFORM_ADMIN_TOKEN` is an environment variable you set at deploy time. It is only needed once per environment (or whenever you need to grant admin to a new user). Platform admins can access `/admin` in the dashboard.
 
+## Open mode
+
+When neither `PLATFORM_API_KEY` nor any DB API keys are configured, the platform starts in **open (unauthenticated) mode** — all endpoints accessible without credentials. This is acceptable for local dev only.
+
+On a **public host** (`HOST` not in `127.0.0.1`, `localhost`, `::1`), open mode is a hard startup error unless `ANTCREW_OPEN_MODE=true` is explicitly set. Before deploying to any public interface, configure authentication:
+
+- **Option A** — set `PLATFORM_API_KEY` (≥ 32 chars)
+- **Option B** — create DB-scoped keys via `POST /api-keys/`
+
+To enforce auth even on localhost (useful in CI environments with DB access): `ANTCREW_REQUIRE_AUTH=true`.
+
+## Run state encryption
+
+The `state` column in the `run` table (LLM prompts, generated code, intermediate artifacts) is encrypted with AES-GCM-256 when `ANTCREW_ENCRYPTION_KEY` is set. **Without it, run state is stored in plaintext.** In `APP_ENV=prod`, the platform refuses to start without this key.
+
+Generate: `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`
+
 ## CI/CD secrets reference
 
 | Secret | Scope | Used by |
@@ -81,7 +98,9 @@ curl -X POST https://your-platform.example.com/admin/make-admin \
 | `ANTHROPIC_API_KEY` | LLM inference | Runtime — required for Managed mode |
 | `BYOK_ENCRYPTION_KEY` | Per-workspace key encryption | Runtime — required for BYOK |
 | `PLATFORM_ADMIN_TOKEN` | Admin bootstrap | Runtime — set once |
-| `PLATFORM_API_KEY` | Master API key (optional) | Runtime |
+| `PLATFORM_API_KEY` | Master API key (optional, ≥32 chars) | Runtime |
+| `ANTCREW_ENCRYPTION_KEY` | Run state AES-GCM-256 encryption | Runtime — required in production |
+| `SEMGREP_APP_TOKEN` | SAST scanning in CI | CI (`ci.yml` security job) |
 | `SMTP_HOST` / `SMTP_USER` / `SMTP_PASSWORD` | Email sending | Runtime — required for email |
 | `HCLOUD_TOKEN` | Hetzner API | `deploy.yml` — create/delete UAT server |
 | `HETZNER_SSH_PRIVATE_KEY` | SSH into UAT and PROD servers | `deploy.yml` |
