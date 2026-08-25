@@ -57,6 +57,8 @@ erDiagram
 | **Run** | One agent pipeline execution — has status, events, tickets |
 | **Event** | A single TraceLog entry — LLM call, tool result, state change |
 | **Ticket** | Structured action item from a run, with a display ID |
+| **Sprint** | Named group of tickets representing a development cycle |
+| **Backlog** | Unassigned tickets waiting to be placed in a sprint |
 | **HITL Review** | Human approval gate that pauses a run until resolved |
 | **Eval** | Automated quality check over run output |
 | **Webhook** | Outbound HTTP call to your system on any platform event |
@@ -66,6 +68,8 @@ erDiagram
 [:octicons-arrow-right-24: Workspaces & API keys](workspaces.md)
 
 [:octicons-arrow-right-24: Runs & tickets](runs.md)
+
+[:octicons-arrow-right-24: Backlog & sprints](backlog.md)
 
 [:octicons-arrow-right-24: HITL reviews](hitl.md)
 

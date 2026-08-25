@@ -21,18 +21,16 @@ print(result.state["code_artifacts"])  # typed code files
 
 ---
 
-## What makes antcrew different
+## What antcrew gives you
 
-Every output is a **typed artifact** (Pydantic class, not a dict) and every decision is written to a **local TraceLog** you can replay. Both work offline, for free.
-
-| | antcrew | CrewAI | MetaGPT |
-|---|---|---|---|
-| Typed output contracts | ✓ Pydantic artifacts | ✗ dict | partial |
-| Trace & replay any run | ✓ SQLite TraceLog | ✗ | ✓ |
-| Works 100% offline | ✓ Ollama natively | partial | partial |
-| Lines to first agent | **3** | ~15 | ~20 |
-| Governance hash per agent | ✓ SHA-256 | ✗ | ✗ |
-| CLI (commands) | ✓ 29 commands | limited | basic |
+| Capability | Detail |
+|---|---|
+| **Typed output contracts** | Every agent produces a Pydantic artifact — `PRD`, `CodeArtifact`, `SecurityReport` — not a raw dict. Downstream agents receive typed inputs; mismatches fail at definition time, not at runtime. |
+| **Trace & replay** | Every run writes a local `TraceLog` (SQLite). Replay any past run step-by-step, diff two runs, or re-run from a checkpoint. |
+| **Works 100% offline** | Ollama is a first-class provider. `--model ollama:llama3` routes all LLM calls to your local instance — no network, no API key, no cost. |
+| **3 lines to first agent team** | `QuickStart.dev().run("Build a FastAPI auth service")` is the entire program. |
+| **Governance hash per agent** | Each agent turn is SHA-256 hashed (model config + inputs + outputs). The hash is stored in the TraceLog and exposed via `antcrew inspect`. |
+| **29 CLI commands** | `antcrew run`, `antcrew inspect`, `antcrew trace replay`, `antcrew test`, and 25 more — all local, no platform account needed. |
 
 ---
 

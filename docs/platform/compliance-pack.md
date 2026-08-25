@@ -1,5 +1,7 @@
 # Compliance Pack
 
+**Landing page:** `antcrew.org/compliance-pack` — share this with your compliance officer or decision-maker. No account required to view pricing.
+
 The Compliance Pack is a paid add-on that transforms antcrew-platform into a compliance-grade AI operations hub. It adds a central dashboard for compliance officers (non-devs), bulk attestation export, and workspace-level pricing — on top of the audit infrastructure already built into the SDK.
 
 ---

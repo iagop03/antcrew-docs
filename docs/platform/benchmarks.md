@@ -43,11 +43,11 @@ Each row in the table covers one (task, team) combination and shows:
 | Content generation | ContentTeam | $0.0029 | 99% |
 | Webhook processing | WebhookSink | $0.0003 | 100% |
 
-## Framework comparison
+## Cost by team type
 
-The Benchmarks page includes side-by-side bars for antcrew, CrewAI, LangGraph, and AutoGen on the "code review" and "feature planning" task types. Reference values are sourced from published benchmarks and reflect typical production configurations.
+The Benchmarks page shows cost and pass-rate data for each antcrew team type across the "code review" and "feature planning" task types. Numbers reflect real provider calls with the default cost routing policy.
 
-antcrew's cost advantage comes from [cost routing](cost-routing.md): cheap models handle formatting, validation, and extraction; premium models run only for planning, architecture, and legal review.
+antcrew's per-run cost comes from [cost routing](cost-routing.md): cheap models handle formatting, validation, and extraction; premium models run only for planning, architecture, and legal review.
 
 ## Cost by routing tier
 

@@ -24,6 +24,7 @@ Only `ANTHROPIC_API_KEY` is required for a local dev run with SQLite.
 | `PLATFORM_API_KEY` | — | Static master key. When set, any request with this key bypasses the database key check. Useful for initial bootstrap or infrastructure scripts. |
 | `BYOK_ENCRYPTION_KEY` | — | Fernet key for encrypting per-workspace LLM API keys and proxy tokens at rest. Generate with `python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"`. |
 | `PLATFORM_ADMIN_TOKEN` | — | Bootstrap token for granting platform admin access. Send `POST /admin/make-admin` with `{"email": "you@example.com"}` and `Authorization: Bearer <token>`. Required only once per environment to create the first admin. |
+| *(no var)* | — | **MFA required for admin access.** Platform admin accounts must have MFA enabled (`Settings → Security → Enable MFA`) before accessing `/admin/*` endpoints via browser session. API-key-based access to admin routes is not permitted — admin endpoints only accept browser sessions. |
 
 ## Email
 

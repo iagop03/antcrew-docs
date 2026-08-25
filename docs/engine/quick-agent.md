@@ -2,7 +2,7 @@
 
 `QuickAgent` and the `antcrew quick` CLI command let you define and run a multi-agent pipeline with zero Python code. Role and goal are specified as strings — no class definition, typed artifacts, or EventBus knowledge required.
 
-This is the fastest path from idea to running pipeline, matching the DX of CrewAI's `Agent(role=..., goal=...)` while staying on AntCrew's typed architecture underneath.
+This is the fastest path from idea to running pipeline: role and goal as strings, typed artifact contracts and TraceLog underneath.
 
 ## CLI
 
