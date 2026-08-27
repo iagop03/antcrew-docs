@@ -63,6 +63,8 @@ erDiagram
 | **Eval** | Automated quality check over run output |
 | **Webhook** | Outbound HTTP call to your system on any platform event |
 
+[:octicons-arrow-right-24: Self-hosted quickstart — single docker run](self-hosted.md)
+
 [:octicons-arrow-right-24: Quick start — connect your first pipeline](getting-started.md)
 
 [:octicons-arrow-right-24: Workspaces & API keys](workspaces.md)
