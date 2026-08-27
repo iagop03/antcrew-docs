@@ -17,9 +17,13 @@ It works with any framework that makes HTTP requests to LLMs: **CrewAI, LangGrap
 - **Drop-in replacement** — change `base_url` only; no other code changes required
 - **15 providers** — Anthropic, OpenAI, Azure OpenAI, Groq, Gemini, Moonshot, DeepSeek, Mistral, xAI, Together, Fireworks, Cerebras, Ollama, LM Studio, vLLM
 - **Automatic failover** — `POST /v1/chat/completions` tries providers in order; recovers from timeouts and rate-limits
-- **Observability** — per-request audit log (JSONL, SIEM-ready) + live metrics at `GET /metrics`
+- **Tamper-evident audit log** — per-request JSONL with SHA-256 hash chain; exportable via `GET /audit/export` and verifiable via `GET /audit/verify`
+- **Live metrics** — request count, p50/p99 latency, token totals, and error breakdown at `GET /metrics`
 - **Multi-key round-robin** — distribute load across multiple API keys per provider
 - **Multi-token hot rotation** — rotate tokens without downtime
+- **mTLS support** — run token auth, mTLS, or both for defense-in-depth
+- **Per-token rate limiting** — configurable sliding-window RPM limit per token (`PROXY_TOKEN_RPM`)
+- **OpenTelemetry tracing** — optional OTLP export with `pip install keybridge[otel]`
 
 ## Quick start
 

@@ -133,17 +133,55 @@ To point to a remote Ollama instance:
 -e OLLAMA_BASE_URL=http://my-ollama-server:11434
 ```
 
+## Audit endpoints
+
+Both endpoints require `Authorization: Bearer <METRICS_TOKEN>` or `x-api-key: <METRICS_TOKEN>` (same token as `/metrics`).
+
+### `GET /audit/export`
+
+Streams the tamper-evident JSONL audit log as a downloadable file. Supports optional time-range filtering:
+
+```
+GET /audit/export?since=2026-08-01T00:00:00Z&until=2026-08-28T00:00:00Z
+```
+
+| Parameter | Format | Description |
+|---|---|---|
+| `since` | ISO 8601 UTC | Include only entries at or after this time |
+| `until` | ISO 8601 UTC | Include only entries at or before this time |
+
+The response is `Content-Type: application/x-ndjson` with `Content-Disposition: attachment; filename=keybridge_audit.jsonl`. Each line is one request record with a `sha256_chain` field linking it to the previous entry.
+
+### `GET /audit/verify`
+
+Checks the SHA-256 hash chain integrity of the audit log without downloading it:
+
+```json
+{
+  "ok": true,
+  "entries": 18430,
+  "message": "Chain intact"
+}
+```
+
+When `ok` is `false`, `message` describes the first broken link. Use this as a scheduled integrity check in your compliance workflow.
+
+!!! tip "Compliance Pack integration"
+    When `KEYBRIDGE_URL` and `KEYBRIDGE_METRICS_TOKEN` are set in the platform, the Compliance Pack's `/compliance/export` endpoint fetches the keybridge audit log and bundles it alongside the platform's own audit trail in the ZIP download.
+
 ## Fallback routing
 
 If the path prefix is not recognised, the proxy returns `404` with the list of supported providers.
 
 ## Token usage headers
 
-For non-streaming responses, the proxy injects two response headers after reading the upstream body:
+The proxy injects usage headers for both streaming and non-streaming responses:
 
 | Header | Value |
 |---|---|
 | `X-Proxy-Tokens-In` | Input tokens from the `usage` field |
 | `X-Proxy-Tokens-Out` | Output tokens from the `usage` field |
 
-These headers are read by `antcrew-platform` to update `AgentEvent` rows without making a separate accounting request. Streaming responses omit these headers because usage data is only available in the final SSE chunk, which the proxy does not buffer.
+For streaming responses (SSE), the proxy reads the final `[DONE]` chunk to extract usage and injects the headers before closing the connection. Both values are also written to the audit log.
+
+These headers are read by `antcrew-platform` to update `AgentEvent` rows without making a separate accounting request.

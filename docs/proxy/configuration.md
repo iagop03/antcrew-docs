@@ -76,6 +76,55 @@ The `GET /metrics` endpoint returns live in-memory stats: request count, token t
 !!! tip "Securing observability endpoints"
     In production, set `METRICS_TOKEN` to a random secret so only your monitoring system can reach `/health` and `/metrics`. This prevents competitor traffic analysis via your public health endpoint.
 
+### Rate limiting
+
+| Variable | Default | Description |
+|---|---|---|
+| `PROXY_TOKEN_RPM` | `600` | Requests per minute allowed per token (sliding-window, in-memory). 600 = 10 req/s. Set to `0` to disable. Note: not shared across multiple worker processes — for multi-worker deployments use an external rate limiter. |
+
+### mTLS (mutual TLS)
+
+keybridge supports mTLS as an alternative or complement to token-based auth:
+
+| Variable | Description |
+|---|---|
+| `SSL_CERTFILE` | Path to the server's TLS certificate (PEM) |
+| `SSL_KEYFILE` | Path to the server's TLS private key (PEM) |
+| `SSL_KEYFILE_PASSWORD` | Passphrase for an encrypted key file (optional) |
+| `MTLS_CA_CERT` | CA certificate (PEM) that must have signed the client cert. When set, clients must present a valid cert or the TLS handshake is rejected before any HTTP code runs. |
+
+Auth modes based on env vars set:
+
+| Vars set | Auth mode |
+|---|---|
+| `PROXY_TOKEN` only | Token auth (default) |
+| `SSL_*` + `MTLS_CA_CERT` | mTLS only (no token needed) |
+| `PROXY_TOKEN` + `SSL_*` + `MTLS_CA_CERT` | Both — defense in depth |
+
+Quick CA + cert setup:
+```bash
+# CA
+openssl genrsa -out ca.key 4096
+openssl req -x509 -new -key ca.key -days 3650 -out ca.crt -subj "/CN=keybridge-ca"
+# Server cert
+openssl genrsa -out server.key 4096
+openssl req -new -key server.key -out server.csr -subj "/CN=keybridge"
+openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -days 365 -out server.crt
+# Client cert (for mTLS)
+openssl genrsa -out client.key 4096
+openssl req -new -key client.key -out client.csr -subj "/CN=client"
+openssl x509 -req -in client.csr -CA ca.crt -CAkey ca.key -CAcreateserial -days 365 -out client.crt
+```
+
+```bash
+# Run with mTLS
+docker run -d -p 8443:8443 \
+  -e SSL_CERTFILE=/certs/server.crt -e SSL_KEYFILE=/certs/server.key \
+  -e MTLS_CA_CERT=/certs/ca.crt \
+  -v /path/to/certs:/certs \
+  ghcr.io/iagop03/keybridge:latest
+```
+
 ### Limits
 
 | Variable | Default | Description |
@@ -135,6 +184,23 @@ services:
 volumes:
   audit_logs:
 ```
+
+## OpenTelemetry tracing
+
+keybridge can export distributed traces to any OTLP-compatible collector (Jaeger, Tempo, Honeycomb, Datadog, etc.).
+
+Install the optional dependency and set the endpoint:
+
+```bash
+pip install "keybridge[otel]"
+OTLP_ENDPOINT=http://otel-collector:4317 keybridge
+```
+
+| Variable | Default | Description |
+|---|---|---|
+| `OTLP_ENDPOINT` | _(unset)_ | gRPC endpoint for the OTLP exporter. When unset, tracing is silently disabled — no error, no overhead. |
+
+Trace spans cover: each inbound request, upstream provider call, auth check, and audit log write. FastAPI and httpx are auto-instrumented.
 
 ## Azure OpenAI
 
