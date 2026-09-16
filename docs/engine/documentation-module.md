@@ -160,47 +160,70 @@ related = mgr.get_related_documents("srs/my-spec.md")
 
 ---
 
-## BaseExecutor integration
+## Agent and team integration
 
-All built-in capabilities inherit from `BaseExecutor` and gain two methods:
+The Documentation Module works for **all paths** — agents, teams, and engine capabilities.
 
-```python
-executor.set_documentation(doc_manager)   # attach the manager
-context_str = executor._doc_context("JWT login flow", max_chars=3000)
-```
-
-`_doc_context()` returns a formatted string ready to prepend to any LLM prompt:
+### Teams (DevTeam, FullStackTeam, etc.)
 
 ```python
-# Inside a custom executor's _run() method:
-prompt = f"{self._doc_context(goal.description)}\n\nTask: {goal.description}"
-result = self._call(system_prompt, prompt)
+from antcrew import DevTeam, DocumentationManager
+from antcrew.config import build_llm
+
+llm = build_llm("claude")
+mgr = DocumentationManager(schema_path="schema.yaml")
+mgr.bulk_upload("./docs")
+
+team = DevTeam(llm=llm)
+team.set_documentation(mgr)      # propagates to all agents in the team
+
+result = team.run("Add user authentication with JWT")
 ```
 
-Returns `""` when no manager is attached or no relevant documents are found — safe to always call.
+Every agent's `system()` call automatically prepends relevant documentation to the user message — no per-agent code changes needed.
 
----
+### Individual agents
 
-## Custom executor example
+```python
+from antcrew import DirectAgent, DocumentationManager
+
+agent = DirectAgent(llm=llm)
+agent.set_documentation(mgr)
+
+result = agent.run({"request": "Implement JWT login"})
+```
+
+### Engine capabilities (BaseExecutor)
+
+Engine capabilities also have `set_documentation()` and `_doc_context()`. The CLI wires this automatically via `--docs-dir`. For custom executors:
 
 ```python
 from antcrew_engine.capabilities.base import BaseExecutor
-from antcrew_engine.engine import CapabilityDescriptor, CapabilityResult, EMPTY_DELTA
+from antcrew_engine.engine import CapabilityDescriptor, CapabilityResult
 
 class SecurityChecker(BaseExecutor):
     descriptor = CapabilityDescriptor(
         name="security_checker",
-        description="Reviews code for security issues against project security policy.",
+        description="Reviews code against project security policy.",
         conditions_produced=["security_verified"],
     )
 
     def _run(self, store, goal):
         doc_context = self._doc_context("security requirements threat model OWASP")
         system = "You are a security reviewer."
-        user = f"{doc_context}\n\nReview the following code for security issues:\n\n{goal.description}"
+        user = f"{doc_context}\n\nReview:\n\n{goal.description}"
         review = self._call(system, user)
-        # ... process review and return CapabilityResult
+        # ...
 ```
+
+### How automatic injection works
+
+When a `DocumentationManager` is attached, `_inject_documentation(user)` is called inside every `system()` / `system_with_images()` call. It:
+
+1. Calls `get_context_for_agent(agent_name, user_message)` using the `agent_hints` from the schema
+2. Falls back to `search(user_message, top_k=3)` if no hints match the agent name
+3. Prepends a `## Relevant documentation` block to the user message
+4. Returns the original message unchanged when no docs are found or on any error
 
 ---
 
