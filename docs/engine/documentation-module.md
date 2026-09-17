@@ -77,6 +77,68 @@ documentation_schema:
 
 The engine reads `agent_hints` to decide which doc types to query per capability. If no hints match the capability class name, it falls back to a generic search across all indexed documents.
 
+### Intent-based routing with `query_hints`
+
+`query_hints` route search queries to the right doc types based on the intent expressed in the query — without requiring the caller to know which type to search.
+
+```yaml
+documentation_schema:
+  query_hints:
+    - pattern: "crear tabla|create table|nueva tabla"
+      doc_types: [procedure]
+
+    - pattern: "componente|component|implementar|implement"
+      doc_types: [functional_spec, technical_design]
+
+    - pattern: "error|excepción|exception|handling"
+      doc_types: [technical_design, adr]
+```
+
+Each `pattern` is a **case-insensitive regex** (or a plain substring if it contains no regex metacharacters). When a query matches, the listed `doc_types` are searched first; their results are ranked above the generic fallback. Multiple hints can match the same query — their doc_types are merged in order.
+
+```python
+# Without hints: generic search
+results = mgr.search("how to create a user table")
+
+# With the query_hint above: procedure docs come first, generic results fill remaining slots
+results = mgr.search("how to create a user table")   # same call, automatic routing
+```
+
+Explicit `doc_type=` / `category=` filters always bypass hint routing.
+
+### Path-based classification with `path_rules`
+
+When indexing documents that already exist in storage (S3 or local) and have no antcrew metadata sidecar, `path_rules` map storage path prefixes or suffixes to doc types.
+
+```yaml
+documentation_schema:
+  path_rules:
+    - prefix: "procedures/"
+      doc_type: procedure
+
+    - prefix: "specs/"
+      doc_type: functional_spec
+
+    - suffix: ".jira.json"
+      doc_type: jira_ticket
+
+    - prefix: "adrs/"
+      suffix: ".md"
+      doc_type: adr
+```
+
+Rules are evaluated in schema order; **first match wins**. Both `prefix` and `suffix` can be combined in one rule — the file must satisfy both. Matching is case-insensitive.
+
+Detection order in `index_from_storage()`:
+
+| Priority | Source |
+|----------|--------|
+| 1 | antcrew metadata sidecar (`.meta/{doc_id}.json`) |
+| 2 | S3 native user-metadata via `HeadObject` (`doc-type` key) |
+| 3 | `path_rules` from schema |
+| 4 | Filename convention (`{doc_type}.{project}.{ext}`) |
+| 5 | Extension fallback (`.md → markdown`, etc.) |
+
 ### File naming convention
 
 Files can auto-detect their type using the pattern `{doc_type}.{project}.{ext}`:
@@ -116,7 +178,48 @@ Files that don't follow the convention are classified by extension (`.md → mar
 mgr = DocumentationManager(
     schema_path="schema.yaml",
     storage_type="s3",
-    storage_config={"bucket": "my-docs", "prefix": "v2/", "region": "eu-west-1"},
+    storage_config={
+        "bucket": "my-docs",
+        "prefix": "v2/",
+        "region": "eu-west-1",
+        # optional — falls back to env vars / IAM role when omitted
+        "aws_access_key_id": "AKIA...",
+        "aws_secret_access_key": "...",
+    },
+)
+```
+
+### Indexing existing storage files
+
+`index_from_storage()` reads every document already present in the configured backend and indexes them in-process without re-uploading. Use it to integrate a pre-existing S3 bucket, a git repo, or a local directory tree:
+
+```python
+mgr = DocumentationManager(
+    schema_path="schema.yaml",
+    storage_type="s3",
+    storage_config={"bucket": "company-docs", "prefix": "project-a/"},
+)
+
+# Index all existing files — uses path_rules + S3 metadata for type detection
+indexed = mgr.index_from_storage()
+print(f"Indexed {len(indexed)} documents")
+
+results = mgr.search("authentication requirements", top_k=5)
+```
+
+For files without an antcrew metadata sidecar, configure `path_rules` in your schema so the engine knows which types they belong to (see [Path-based classification](#path-based-classification-with-path_rules) above).
+
+#### S3 native user-metadata
+
+If your existing S3 objects already carry user-defined metadata, the engine reads `doc-type` (or `doc_type`) from `HeadObject` as the second detection layer:
+
+```python
+# When saving files outside antcrew:
+s3.put_object(
+    Bucket="company-docs",
+    Key="procedures/onboarding.md",
+    Body=content,
+    Metadata={"doc-type": "procedure"},
 )
 ```
 
@@ -136,9 +239,13 @@ When ChromaDB is present, documents are embedded on upload and searched by cosin
 results = mgr.search("JWT authentication requirements", top_k=5)
 # results: list of {"id": ..., "content": ..., "metadata": ..., "score": ...}
 
-# Filter by doc type or category
+# Explicit filter by doc type or category (bypasses query_hints routing)
 results = mgr.search_by_type("login flow", "srs", top_k=3)
 results = mgr.search_by_category("authentication", "functional", top_k=5)
+
+# When query_hints are configured, plain search() routes automatically:
+results = mgr.search("how to create a user table")     # → procedure docs first
+results = mgr.search("implement authentication component")  # → functional_spec, technical_design
 ```
 
 ---
