@@ -273,58 +273,88 @@ See the [polytranslate repository](https://github.com/iagop03/polytranslate) for
 
 ## Java → COBOL (LLM-based)
 
-`JavaToCOBOLTranslator` uses an LLM to produce COBOL code from Java source, optionally learning naming conventions from an existing COBOL file or a standards document.
+`JavaToCOBOLTranslator` uses an LLM to produce COBOL code from Java source, optionally learning naming conventions from an existing COBOL file or a standards document. Output is automatically normalised and structurally validated after every translation.
 
 ```bash
 pip install polytranslate anthropic   # or: pip install "antcrew[java-to-cobol]"
 ```
 
-### Quickstart — standalone (no antcrew needed)
+### LLM configuration
 
-Set `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) and call `from_env()`:
+`from_env()` detects the LLM provider automatically. Priority order:
+
+| Env var | Provider | Default model |
+|---|---|---|
+| `KEYBRIDGE_URL` + `KEYBRIDGE_TOKEN` | KeyBridge proxy (recommended for teams) | `claude-sonnet-5` |
+| `ANTHROPIC_API_KEY` | Anthropic direct | `claude-sonnet-5` |
+| `OPENAI_API_KEY` | OpenAI direct | `gpt-4o` |
+| `DEEPSEEK_API_KEY` | DeepSeek (OpenAI-compatible) | `deepseek-chat` |
+| `GROQ_API_KEY` | Groq (OpenAI-compatible) | `llama-3.3-70b-versatile` |
 
 ```python
 from polytranslate.translators.java_to_cobol import JavaToCOBOLTranslator
 
+translator = JavaToCOBOLTranslator.from_env()           # auto-detect
+translator = JavaToCOBOLTranslator.from_env("claude-opus-5")  # override model
+translator = JavaToCOBOLTranslator(llm=my_langchain_llm)      # bring your own
+```
+
+When called from **antcrew**, the translator receives the LLM from `build_llm()` — no separate configuration needed.
+
+### Translation pipeline
+
+A single `translate()` call runs the full pipeline:
+
+```python
 translator = JavaToCOBOLTranslator.from_env()
+translator.load_standards("CLAIMS.cbl")
+
 cobol = translator.translate(open("OrderProcessor.java").read())
-print(cobol)
 ```
 
-`from_env()` checks `ANTHROPIC_API_KEY` first (uses `claude-sonnet-5`), then `OPENAI_API_KEY` (uses `gpt-4o`). Pass a model name to override:
+1. **Chunking** — files over 150 lines are split by method, translated independently, then merged
+2. **LLM call** — prompt built with or without standards; 60 s hard timeout
+3. **Normalisation** — `COBOLNormalizer` runs automatically: variable prefixes, paragraph names, section order, column formatting
+4. **Validation** — structural checks returned by `translator.validate(cobol)`
 
-```python
-translator = JavaToCOBOLTranslator.from_env("claude-opus-5")
-```
-
-### Bring your own LLM
-
-Pass any LangChain-compatible object (or anything with `.invoke(str) → .content`):
-
-```python
-from langchain_anthropic import ChatAnthropic
-
-translator = JavaToCOBOLTranslator(llm=ChatAnthropic(model="claude-opus-5"))
-```
+Skip normalisation with `translate(java_code, normalize=False)`.
 
 ### Standards learning
 
-Teach the translator your company's naming conventions before translating:
-
 ```python
-# Learn from an existing COBOL program
-translator.load_standards("CLAIMS.cbl")          # auto-detects .cbl extension
-
-# Or from a standards documentation file
-translator.load_standards("COBOL_STANDARDS.md")  # auto-detects .md extension
-
-cobol = translator.translate(java_code)
-# Variables will follow your WS-/WC-/LK- prefixes and paragraph patterns
+translator.load_standards("CLAIMS.cbl")          # learn from existing COBOL
+translator.load_standards("COBOL_STANDARDS.md")  # or from a doc
 ```
 
-Extracted standards include variable prefixes (`WS-`, `WC-`, `LK-`, `FD-`), paragraph naming patterns (`{ACTION}-{OBJECT}` vs `{ACTION}-{OBJECT}-{QUALIFIER}` vs free-form), and maximum nesting levels. Standards are cached in `~/.antcrew/standards/` so repeat calls on the same file are instant.
+Standards are cached in `~/.antcrew/standards/` keyed by filename + mtime — repeated calls on the same file are instant. A `templates/COBOL_STANDARDS_TEMPLATE.md` ships with polytranslate as a starting point.
 
-A `templates/COBOL_STANDARDS_TEMPLATE.md` file ships with polytranslate — copy and edit it to document your team's conventions.
+### Structural validation
+
+`validate()` checks the output for the most common LLM mistakes:
+
+```python
+result = translator.validate(cobol)
+# result.valid      → bool
+# result.errors     → ["PROCEDURE DIVISION is missing", …]
+# result.warnings   → ["STOP RUN not found", …]
+print(result.summary())
+```
+
+Checks: four divisions present, `PROGRAM-ID` set, `STOP RUN` / `GOBACK` present, no markdown fences leaking into output, no names exceeding 30 characters.
+
+### Refining bad output
+
+If the first translation is wrong, use `refine()` instead of re-translating from scratch:
+
+```python
+cobol_v2 = translator.refine(
+    java_code=open("OrderProcessor.java").read(),
+    current_cobol=open("cobol_output/OrderProcessor.cbl").read(),
+    feedback="The VALIDATE-ORDER paragraph is missing the date-range check from validateOrder()",
+)
+```
+
+The LLM receives the original Java, the previous COBOL, and the feedback in a single prompt and produces a targeted fix.
 
 ### CLI (via antcrew)
 
@@ -332,6 +362,7 @@ A `templates/COBOL_STANDARDS_TEMPLATE.md` file ships with polytranslate — copy
 antcrew java-to-cobol OrderProcessor.java
 antcrew java-to-cobol OrderProcessor.java --standards CLAIMS.cbl
 antcrew java-to-cobol OrderProcessor.java --standards COBOL_STANDARDS.md -o ./output
+antcrew java-to-cobol OrderProcessor.java --refine out.cbl --feedback "missing date check"
 antcrew java-to-cobol OrderProcessor.java --dry-run
 ```
 
@@ -340,35 +371,67 @@ antcrew java-to-cobol OrderProcessor.java --dry-run
 | `--standards` / `-s` | COBOL file or standards doc to learn naming from |
 | `--output` / `-o` | Output directory (default: `./cobol_output/`) |
 | `--model` / `-m` | LLM to use (default: `claude`) |
+| `--refine` / `-r` | Existing `.cbl` to refine instead of translating from scratch |
+| `--feedback` / `-f` | Feedback text for `--refine` mode |
+| `--no-normalize` | Skip COBOLNormalizer pass |
 | `--dry-run` | Print generated COBOL without writing files |
 
-Input files larger than 1 MB are rejected — split large Java classes before translating.
+The CLI prints validation results (errors/warnings/OK) after every translation. Files larger than 1 MB are rejected.
 
-### Post-processing with COBOLNormalizer
+### CLI (standalone — polytranslate only)
 
-`COBOLNormalizer` cleans up LLM output to enforce your naming standards:
+```bash
+pip install "polytranslate[cli]"
+
+# Translate
+polytranslate translate java-to-cobol OrderProcessor.java
+polytranslate translate java-to-cobol OrderProcessor.java -s CLAIMS.cbl -o ./output
+polytranslate translate java-to-cobol OrderProcessor.java --refine out.cbl --feedback "..."
+
+# Extract standards from an existing COBOL file or doc
+polytranslate extract-standards CLAIMS.cbl
+polytranslate extract-standards CLAIMS.cbl -o COBOL_STANDARDS.md
+```
+
+`extract-standards` produces a filled `COBOL_STANDARDS.md` you can share with your team and pass back as `--standards` on future translations.
+
+### Using as an agent tool
+
+`JavaToCOBOLTool` wraps the translator as an antcrew `BaseTool` so any agent can call it mid-task:
 
 ```python
-from antcrew.integrations.standards_normalizer import COBOLNormalizer
+from antcrew.tools import JavaToCOBOLTool
+
+tool = JavaToCOBOLTool()          # auto-detects LLM from env
+tool = JavaToCOBOLTool(llm=my_llm, standards_file="CLAIMS.cbl")
+
+agent = MigrationAgent(llm, tools=[tool])
+```
+
+The tool accepts JSON input with `java_code`, optional `standards_file`, and optional `feedback` + `current_cobol` for refinement. It returns the COBOL string prefixed with any validation warnings.
+
+### COBOLNormalizer
+
+Normalisation runs automatically inside `translate()`. To run it manually on existing COBOL:
+
+```python
+from polytranslate.utils.cobol_normalizer import COBOLNormalizer
 
 normalizer = COBOLNormalizer()
 clean_cobol = normalizer.normalize(raw_cobol)
-```
 
-Four passes run in sequence:
-
-1. **Variable renaming** — `orderAmount` → `WS-ORDER-AMOUNT`
-2. **Paragraph renaming** — `processOrder.` → `PROCESS-ORDER.`
-3. **Section reorganization** — WC- constants before WS- variables in WORKING-STORAGE
-4. **Formatting** — COBOL column layout (divisions at col 1, data items at col 8, statements at col 12)
-
-Pass a standards dict to override the default WS-/WC- prefixes:
-
-```python
+# With custom prefixes:
 normalizer = COBOLNormalizer(standards={
     "var_prefixes": {"working_storage": "WRK", "constants": "CST"},
 })
 ```
+
+Four passes in sequence:
+
+1. **Variable renaming** — `orderAmount` → `WS-ORDER-AMOUNT`
+2. **Paragraph renaming** — `processOrder.` → `PROCESS-ORDER.`
+3. **Section reorganization** — WC- constants before WS- variables in WORKING-STORAGE
+4. **Formatting** — COBOL column layout (divisions col 1, data items col 8, statements col 12)
 
 ---
 
