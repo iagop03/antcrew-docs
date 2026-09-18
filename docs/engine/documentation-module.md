@@ -163,6 +163,34 @@ Files that don't follow the convention are classified by extension (`.md → mar
 | `docx` | `.docx`, `.doc` | Requires `python-docx` |
 | `pdf` | `.pdf` | Requires `pypdf`; extracts page text |
 | `jira` | `.json` | Parses Jira ticket JSON exports; falls back to plain text |
+| `cobol` | `.cbl`, `.cob`, `.cpy`, `.copy` | Extracts PROGRAM-ID, data items, paragraphs, COPY/CALL statements |
+
+### COBOL parser
+
+The COBOL parser (`CobolParser`) handles both fixed-format (cols 1-6 sequence, col 7 indicator) and free-format COBOL. It produces a human-readable Markdown summary of the program structure plus structured metadata:
+
+```python
+from antcrew_engine.documentation.parsers.cobol import CobolParser
+
+doc = CobolParser().parse("ORDPRC.cbl")
+print(doc.content)           # human-readable summary: divisions, data items, paragraphs
+print(doc.metadata["program_id"])      # "ORDPRC"
+print(doc.metadata["paragraphs"])      # ["MAIN-PARA", "VALIDATE-ORDER", ...]
+print(doc.metadata["called_programs"]) # ["VALDATE", "ERRHDLR"]
+print(doc.metadata["copybooks"])       # ["COMMONLIB", "CUSTRECORD"]
+```
+
+To enable COBOL parsing in the documentation module, set `org_type: legacy` (or add `parser: cobol` to any document type) in your schema:
+
+```yaml
+documentation_schema:
+  org_type: legacy
+  if_legacy:
+    cobol_support:
+      copybook_parsing: true
+```
+
+→ See [Legacy / COBOL Support](legacy-cobol.md) for the full reference.
 
 ---
 

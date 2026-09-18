@@ -16,7 +16,9 @@ pip install antcrew   # antcrew_engine is bundled — no separate install needed
 
 **Built-in capabilities** — Architect, TaskPlanner, CodeGenerator, TestGenerator, TestRunner, BugFixer, CodeReviewer, DocGenerator, SecurityScanner, and more. Each capability reads from the `ArtifactStore` and writes typed, Pydantic-validated artifacts back to it.
 
-**[Documentation Module](documentation-module.md)** — index your project's existing docs (markdown, Word, PDF, Jira) and inject relevant context into every capability's LLM prompt via `--schema` / `--docs-dir` on the CLI, or `DocumentationManager` in the Python API.
+**[Documentation Module](documentation-module.md)** — index your project's existing docs (markdown, Word, PDF, Jira, COBOL) and inject relevant context into every capability's LLM prompt via `--schema` / `--docs-dir` on the CLI, or `DocumentationManager` in the Python API.
+
+**[Legacy / COBOL Support](legacy-cobol.md)** — first-class support for IBM AS/400 organisations: parse `.cbl`/`.cpy` files, connect to DB2 for i via `AS400Connector`, add AI to COBOL programs with `COBOLAugment`, or translate programs to Python/Java/Go with `antcrew-translators`.
 
 **Provider-agnostic model calls** — change `"claude:claude-sonnet-5"` to `"openai:gpt-4o"` and nothing else changes. `build_llm()` resolves the string to the correct provider client.
 
