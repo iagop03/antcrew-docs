@@ -20,6 +20,8 @@ Access it at **[antcrew.org](https://antcrew.org)**.
 
 **GitHub App** — connects repositories to workspaces for write-back (open PRs from runs) and push triggers (auto-dispatch a run on every push).
 
+**Documentation S3** — connect an S3 bucket to a workspace so agents automatically receive relevant docs context on every run. Upload files, set a schema YAML that maps doc types to agents, and trigger a re-index. Supports markdown, PDF, Word, and COBOL source files.
+
 **Webhooks** — outbound notifications to your own endpoints when runs complete, tickets are created, or reviews are resolved.
 
 ---
@@ -76,3 +78,5 @@ erDiagram
 [:octicons-arrow-right-24: HITL reviews](hitl.md)
 
 [:octicons-arrow-right-24: GitHub App integration](github-app.md)
+
+[:octicons-arrow-right-24: Documentation S3 integration](docs-s3.md)
