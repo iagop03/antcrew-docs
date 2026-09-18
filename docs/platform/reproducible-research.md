@@ -143,4 +143,4 @@ pipeline = ReproducibleResearchPipeline(trace_log=tlog)
 
 - [GitHub Action — antcrew regtest](./github-action-regtest.md)
 - [Compliance & Governance dashboard](./compliance-dashboard.md)
-- [TraceLog SDK reference](../sdk/tracelog.md)
+- [TraceLog SDK reference](../engine/tracelog.md)

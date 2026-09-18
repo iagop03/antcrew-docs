@@ -136,6 +136,6 @@ jobs:
 
 ## Related
 
-- [`antcrew regtest` CLI reference](../cli/regtest.md)
-- [TraceLog documentation](../sdk/tracelog.md)
+- [Eval suite reference](../engine/eval-suite.md)
+- [TraceLog documentation](../engine/tracelog.md)
 - [Compliance & Governance dashboard](./compliance-dashboard.md)

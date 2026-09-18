@@ -164,6 +164,6 @@ result = team.run("Write our monthly newsletter intro")
 
 ## Related
 
-- [ContentTeam reference](../sdk/teams.md#contentteam)
-- [ChromaMemory reference](../sdk/memory.md#chromamemory)
+- [ContentTeam reference](../engine/custom-agents.md)
+- [Memory and context](../engine/index.md)
 - [White-Label & Agency Billing](./white-label.md)

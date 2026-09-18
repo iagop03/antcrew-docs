@@ -181,6 +181,6 @@ jobs:
 
 ## Related
 
-- [`antcrew trace`](../sdk/cli.md#trace) — inspect TraceLog, show stored prompts
+- [`antcrew trace`](../engine/tracelog.md) — inspect TraceLog, show stored prompts
 - [Compliance Audit Trail](./compliance.md) — governance hash + attestation
 - [Governance Hash](./governance-hash.md) — certify agent configuration identity

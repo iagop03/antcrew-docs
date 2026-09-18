@@ -70,7 +70,7 @@ Each delivery is a JSON POST with `Content-Type: application/json`:
 }
 ```
 
-The top-level `event_type` field is always present. All other fields come from the event payload and vary by event type — see the [Event Catalogue](../architecture/event-bus.md) for the full list.
+The top-level `event_type` field is always present. All other fields come from the event payload and vary by event type — see the [Event Schema](../engine/event-schema.md) for the full list.
 
 ## Request signature
 
