@@ -16,7 +16,7 @@ pip install "antcrew[docs,legacy]"
 | `org_type: legacy` in schema — enables COBOL-aware routing | `antcrew[docs]` | — |
 | `AS400Connector` — query DB2 for i tables | `antcrew[legacy]` | — |
 | `COBOLAugment` — add AI to COBOL without rewriting | `antcrew[legacy]` | `antcrew augment-cobol` |
-| COBOL → Python/Java/Go structural translation | `antcrew-translators` | — |
+| COBOL → Python/Java/Go structural translation | `polytranslate` | — |
 
 ---
 
@@ -244,17 +244,17 @@ COBOL writes input to a flat file; Python reads and processes it overnight. Suit
 
 ---
 
-## antcrew-translators — full structural translation
+## polytranslate — full structural translation
 
 For teams that want to migrate COBOL programs to Python/Java/Go rather than augmenting them:
 
 ```bash
-pip install antcrew-translators
+pip install polytranslate
 ```
 
 ```python
-from translators.languages.cobol import CobolParser
-from translators.targets.python import PythonGenerator
+from polytranslate.languages.cobol import CobolParser
+from polytranslate.targets.python import PythonGenerator
 
 ast = CobolParser().parse_file("ORDPRC.cbl")
 files = PythonGenerator().generate(ast)
@@ -266,7 +266,7 @@ for f in files:
 
 The translation is **structural** — every data item and paragraph is mapped to an equivalent Python construct, producing a working skeleton for developer review. It does not evaluate COBOL expressions or simulate COBOL runtime behaviour.
 
-See the [antcrew-translators repository](https://github.com/iagop03/antcrew-translators) for the full pipeline architecture and how to add new target languages.
+See the [polytranslate repository](https://github.com/iagop03/polytranslate) for the full pipeline architecture and how to add new target languages.
 
 ---
 
@@ -277,5 +277,5 @@ See the [antcrew-translators repository](https://github.com/iagop03/antcrew-tran
 | Index COBOL programs in the doc system | `antcrew[docs]` + `org_type: legacy` |
 | Query DB2 for i schema from Python | `AS400Connector` |
 | Keep COBOL running, add AI logic alongside | `antcrew augment-cobol` |
-| Migrate COBOL to Python/Java/Go | `antcrew-translators` |
+| Migrate COBOL to Python/Java/Go | `polytranslate` |
 | Full AI-driven rewrite with agent team | `antcrew run --team CodeMigrationTeam` |
