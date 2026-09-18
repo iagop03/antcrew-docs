@@ -17,6 +17,7 @@ pip install "antcrew[docs,legacy]"
 | `AS400Connector` — query DB2 for i tables | `antcrew[legacy]` | — |
 | `COBOLAugment` — add AI to COBOL without rewriting | `antcrew[legacy]` | `antcrew augment-cobol` |
 | COBOL → Python/Java/Go structural translation | `polytranslate` | — |
+| Java → COBOL (LLM-based, standards-aware) | `polytranslate` | `antcrew java-to-cobol` |
 
 ---
 
@@ -270,6 +271,107 @@ See the [polytranslate repository](https://github.com/iagop03/polytranslate) for
 
 ---
 
+## Java → COBOL (LLM-based)
+
+`JavaToCOBOLTranslator` uses an LLM to produce COBOL code from Java source, optionally learning naming conventions from an existing COBOL file or a standards document.
+
+```bash
+pip install polytranslate anthropic   # or: pip install "antcrew[java-to-cobol]"
+```
+
+### Quickstart — standalone (no antcrew needed)
+
+Set `ANTHROPIC_API_KEY` (or `OPENAI_API_KEY`) and call `from_env()`:
+
+```python
+from polytranslate.translators.java_to_cobol import JavaToCOBOLTranslator
+
+translator = JavaToCOBOLTranslator.from_env()
+cobol = translator.translate(open("OrderProcessor.java").read())
+print(cobol)
+```
+
+`from_env()` checks `ANTHROPIC_API_KEY` first (uses `claude-sonnet-5`), then `OPENAI_API_KEY` (uses `gpt-4o`). Pass a model name to override:
+
+```python
+translator = JavaToCOBOLTranslator.from_env("claude-opus-5")
+```
+
+### Bring your own LLM
+
+Pass any LangChain-compatible object (or anything with `.invoke(str) → .content`):
+
+```python
+from langchain_anthropic import ChatAnthropic
+
+translator = JavaToCOBOLTranslator(llm=ChatAnthropic(model="claude-opus-5"))
+```
+
+### Standards learning
+
+Teach the translator your company's naming conventions before translating:
+
+```python
+# Learn from an existing COBOL program
+translator.load_standards("CLAIMS.cbl")          # auto-detects .cbl extension
+
+# Or from a standards documentation file
+translator.load_standards("COBOL_STANDARDS.md")  # auto-detects .md extension
+
+cobol = translator.translate(java_code)
+# Variables will follow your WS-/WC-/LK- prefixes and paragraph patterns
+```
+
+Extracted standards include variable prefixes (`WS-`, `WC-`, `LK-`, `FD-`), paragraph naming patterns (`{ACTION}-{OBJECT}` vs `{ACTION}-{OBJECT}-{QUALIFIER}` vs free-form), and maximum nesting levels. Standards are cached in `~/.antcrew/standards/` so repeat calls on the same file are instant.
+
+A `templates/COBOL_STANDARDS_TEMPLATE.md` file ships with polytranslate — copy and edit it to document your team's conventions.
+
+### CLI (via antcrew)
+
+```bash
+antcrew java-to-cobol OrderProcessor.java
+antcrew java-to-cobol OrderProcessor.java --standards CLAIMS.cbl
+antcrew java-to-cobol OrderProcessor.java --standards COBOL_STANDARDS.md -o ./output
+antcrew java-to-cobol OrderProcessor.java --dry-run
+```
+
+| Flag | Description |
+|---|---|
+| `--standards` / `-s` | COBOL file or standards doc to learn naming from |
+| `--output` / `-o` | Output directory (default: `./cobol_output/`) |
+| `--model` / `-m` | LLM to use (default: `claude`) |
+| `--dry-run` | Print generated COBOL without writing files |
+
+Input files larger than 1 MB are rejected — split large Java classes before translating.
+
+### Post-processing with COBOLNormalizer
+
+`COBOLNormalizer` cleans up LLM output to enforce your naming standards:
+
+```python
+from antcrew.integrations.standards_normalizer import COBOLNormalizer
+
+normalizer = COBOLNormalizer()
+clean_cobol = normalizer.normalize(raw_cobol)
+```
+
+Four passes run in sequence:
+
+1. **Variable renaming** — `orderAmount` → `WS-ORDER-AMOUNT`
+2. **Paragraph renaming** — `processOrder.` → `PROCESS-ORDER.`
+3. **Section reorganization** — WC- constants before WS- variables in WORKING-STORAGE
+4. **Formatting** — COBOL column layout (divisions at col 1, data items at col 8, statements at col 12)
+
+Pass a standards dict to override the default WS-/WC- prefixes:
+
+```python
+normalizer = COBOLNormalizer(standards={
+    "var_prefixes": {"working_storage": "WRK", "constants": "CST"},
+})
+```
+
+---
+
 ## Choosing the right tool
 
 | Scenario | Recommended tool |
@@ -278,4 +380,5 @@ See the [polytranslate repository](https://github.com/iagop03/polytranslate) for
 | Query DB2 for i schema from Python | `AS400Connector` |
 | Keep COBOL running, add AI logic alongside | `antcrew augment-cobol` |
 | Migrate COBOL to Python/Java/Go | `polytranslate` |
+| Translate Java to COBOL (standards-aware) | `JavaToCOBOLTranslator` / `antcrew java-to-cobol` |
 | Full AI-driven rewrite with agent team | `antcrew run --team CodeMigrationTeam` |
