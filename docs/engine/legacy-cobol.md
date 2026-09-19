@@ -383,15 +383,21 @@ The CLI prints validation results (errors/warnings/OK) after every translation. 
 ```bash
 pip install "polytranslate[cli]"
 
-# Translate
+# Translate one file
 polytranslate translate java-to-cobol OrderProcessor.java
 polytranslate translate java-to-cobol OrderProcessor.java -s CLAIMS.cbl -o ./output
 polytranslate translate java-to-cobol OrderProcessor.java --refine out.cbl --feedback "..."
+
+# Translate many files in parallel (batch)
+polytranslate translate java-to-cobol-batch "src/**/*.java" -s CLAIMS.cbl -o ./cobol/
+polytranslate translate java-to-cobol-batch "*.java" --workers 5
 
 # Extract standards from an existing COBOL file or doc
 polytranslate extract-standards CLAIMS.cbl
 polytranslate extract-standards CLAIMS.cbl -o COBOL_STANDARDS.md
 ```
+
+`java-to-cobol-batch` accepts a glob pattern and translates all matched `.java` files concurrently (default 3 workers). Standards are loaded once and reused for all files — the cache means the extractor only runs once per standards file. Exits with code 1 if any file fails, so it works in CI pipelines.
 
 `extract-standards` produces a filled `COBOL_STANDARDS.md` you can share with your team and pass back as `--standards` on future translations.
 

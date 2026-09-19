@@ -157,12 +157,14 @@ The re-index call is synchronous — it downloads every document, parses it, and
 
 ## Automatic injection per run
 
-When a workspace has S3 docs configured, every engine run for that workspace:
+When a workspace has S3 docs configured, **every run** for that workspace — whether via a pre-built team (DevTeam, FullStackTeam, etc.) or an engine capability loop — automatically:
 
 1. Builds a fresh `DocumentationManager` with the workspace's S3 credentials and schema.
 2. Calls `index_from_storage()` to download and parse all docs.
-3. Calls `executor.set_documentation(mgr)` on every capability in the registry.
-4. The capabilities use `get_context_for_agent(agent_name, query)` to prepend relevant chunks.
+3. Calls `set_documentation(mgr)` on every agent or capability that supports it.
+4. Each agent uses `get_context_for_agent(agent_name, query)` to prepend the most relevant doc chunks to its LLM prompt.
+
+No changes are needed to your pipeline or team code — docs context is injected transparently.
 
 A failed docs setup (S3 unreachable, bad credentials) is logged as a warning and the run continues without docs context — it does not block the pipeline.
 
